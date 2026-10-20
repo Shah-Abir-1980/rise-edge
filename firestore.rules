@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{d}/documents {
+    function adm() { return request.auth != null && get(/databases/$(d)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
+    function fresh() { return !exists(/databases/$(d)/documents/config/init); }
+    match /{c}/{id} { allow read, write: if adm(); }
+    match /config/{id} { allow read: if true; allow create: if request.auth != null && fresh(); }
+    match /users/{id} {
+      allow read: if request.auth != null && request.auth.uid == id;
+      allow create: if request.auth != null && request.auth.uid == id && fresh() && request.resource.data.role == 'admin';
+      allow update: if request.auth != null && request.auth.uid == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChange']);
+    }
+    match /batches/{id} { allow read: if request.auth != null; }
+    match /pay/{id} { allow read: if request.auth != null && resource.data.sid == request.auth.uid; }
+  }
+}

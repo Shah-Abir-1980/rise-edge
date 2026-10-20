@@ -1,0 +1,65 @@
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,onAuthStateChanged,updatePassword} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,doc,getDoc,setDoc,updateDoc,addDoc,collection,getDocs,query,where} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {cfg} from "./config.js";
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const T=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)},f1=v=>v==null?'–':Math.round(v*10)/10+'%';
+const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app),em=u=>u.trim().toLowerCase()+'@rise.local',NM={P:'Present',A:'Absent',E:'Excused'};
+let me,B=[],U=[],setting=false;const S={tab:'stu',bid:null,date:T(),fm:T().slice(0,7),si:0},V={},f={},out=h=>{$('#a').innerHTML=h};
+window.S=S;window.f=f;
+const snap=async(c,...w)=>(await getDocs(w.length?query(collection(db,c),...w):collection(db,c))).docs.map(d=>({id:d.id,...d.data()}));
+const act=()=>U.filter(s=>s.bid==S.bid&&s.active!==false),nob='<div class="card">Add a batch first (Students tab).</div>';
+onAuthStateChanged(auth,async u=>{if(setting)return;if(!u)return login();const s=await getDoc(doc(db,'users',u.uid));
+if(!s.exists()||s.data().active===false){await signOut(auth);return login('No access. Ask the admin.')}
+me={id:u.uid,...s.data()};me.role=='admin'?render():student()});
+function login(m=''){out(`<div class="card"><h2>Rise Edge Academy</h2><p class="mut">${m}</p><input id="u" placeholder="Roll number (admin: admin)" autocapitalize="none"><input id="p" type="password" placeholder="Password"><button class="pri" id="lg">Login</button> <button id="su">First-time setup (admin only)</button></div>`);
+$('#lg').onclick=async()=>{try{await signInWithEmailAndPassword(auth,em($('#u').value),$('#p').value)}catch(e){login('Wrong roll or password')}};$('#su').onclick=setup}
+async function setup(){if((await getDoc(doc(db,'config','init'))).exists())return login('Setup is already done.');
+const n=prompt('Admin name'),p=prompt('Choose admin password (min 6 characters)');if(!n||!p)return;setting=true;
+try{const c=await createUserWithEmailAndPassword(auth,em('admin'),p);await setDoc(doc(db,'users',c.user.uid),{role:'admin',name:n});await setDoc(doc(db,'config','init'),{t:Date.now()})}catch(e){alert(e.message)}location.reload()}
+async function recalc(bid){const b=B.find(x=>x.id==bid),L=(await snap('users',where('bid','==',bid))).filter(s=>s.role=='student'&&s.active!==false);
+const A=(await snap('att',where('bid','==',bid))).filter(d=>d.date>=b.start),E=(await snap('exams',where('bid','==',bid))).filter(e=>e.date>=b.start);
+const R=L.map(s=>{let p=0,a=0,g=0,t=0;A.forEach(d=>{if(d.A.includes(s.id))a++;else if(!d.E.includes(s.id))p++});E.forEach(e=>e.subs.forEach(u=>{if(u.st=='H'){t+=u.total;g+=+(u.m[s.id]||0)}}));return{s,ex:t?g/t*100:null,ov:p+a?p/(p+a)*100:null,p,a}});
+// same score = same rank (1,1,2,2,3)
+const rk=k=>{const v=[...new Set(R.filter(r=>r[k]!=null).map(r=>Math.round(r[k]*100)))].sort((x,y)=>y-x);return r=>r[k]==null?null:v.indexOf(Math.round(r[k]*100))+1},re=rk('ex'),ro=rk('ov');
+await Promise.all(R.map(r=>updateDoc(doc(db,'users',r.s.id),{stats:{ex:r.ex,er:re(r),ov:r.ov,or:ro(r),p:r.p,a:r.a,n:R.length}})))}
+async function render(){B=await snap('batches');U=await snap('users',where('role','==','student'));S.bid=B.some(b=>b.id==S.bid)?S.bid:(B[0]||{}).id;
+const bs=`<select onchange="S.bid=this.value;S.am=null;f.r()">${B.map(b=>`<option value="${b.id}" ${b.id==S.bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`;
+out(`<div class="bar">${[['stu','Students'],['att','Attendance'],['ex','Exams'],['fee','Fees']].map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="S.tab='${t[0]}';S.am=null;f.r()">${t[1]}</button>`).join('')}<button onclick="f.out()">Logout</button></div>${await V[S.tab](bs)}`)}
+Object.assign(f,{r:render,out:()=>signOut(auth)});
+V.stu=bs=>{const b=B.find(x=>x.id==S.bid);return `<div class="card"><h3>Batch</h3><input id="bn" placeholder="New batch name"><button onclick="f.addB()">Add batch</button>${b?`<hr>${bs}<p class="mut">Month started on (wrong date? change it, ranks recalculate)</p><input type="date" value="${b.start}" onchange="f.setStart(this.value)"><button onclick="f.newMonth()">Start new month</button>`:''}</div>
+${b?`<div class="card"><h3>Add student</h3><input id="sn" placeholder="Name"><input id="sg" placeholder="Guardian phone"><input id="ss" placeholder="School"><input id="sf" type="number" placeholder="Monthly fee"><button class="pri" onclick="f.addStu()">Add student</button></div>`:''}
+<div class="card"><h3>Students</h3>${U.filter(s=>s.bid==S.bid).map(s=>`<div class="li"><span>${esc(s.name)}<br><span class="mut">Roll ${s.roll}${s.active===false?' · Inactive':''}</span></span><button onclick="f.tg('${s.id}')">${s.active===false?'Reactivate':'Deactivate'}</button></div>`).join('')||'<p class="mut">No students yet.</p>'}</div>`};
+f.addB=async()=>{const n=$('#bn').value.trim();if(!n)return;await addDoc(collection(db,'batches'),{name:n,start:T()});render()};
+f.setStart=async v=>{if(!v)return;await updateDoc(doc(db,'batches',S.bid),{start:v});B.find(b=>b.id==S.bid).start=v;await recalc(S.bid);alert('Recalculated')};
+f.newMonth=async()=>{if(!confirm('Close this month and start a new one today?'))return;const b=B.find(x=>x.id==S.bid);
+await addDoc(collection(db,'records'),{bid:b.id,bn:b.name,from:b.start,to:T(),rows:U.filter(s=>s.bid==b.id&&s.stats).map(s=>({n:s.name,roll:s.roll,...s.stats}))});await updateDoc(doc(db,'batches',b.id),{start:T()});B.find(x=>x.id==b.id).start=T();await recalc(b.id);alert('New month started');render()};
+f.addStu=async()=>{const n=$('#sn').value.trim();if(!n)return alert('Enter the name');let r;do r=String(100000+Math.floor(Math.random()*900000));while(U.some(s=>s.roll==r));
+const pw=Math.random().toString(36).slice(2,8)+'A1',a2=getAuth(initializeApp(cfg,'s'+Date.now()));
+try{const c=await createUserWithEmailAndPassword(a2,em(r),pw);await signOut(a2);await setDoc(doc(db,'users',c.user.uid),{role:'student',name:n,roll:r,bid:S.bid,fee:+$('#sf').value||0,gphone:$('#sg').value,school:$('#ss').value,active:true,mustChange:true});
+alert('Roll (username): '+r+'\nPassword: '+pw+'\nGive this to the student.');render()}catch(e){alert(e.message)}};
+f.tg=async id=>{const s=U.find(x=>x.id==id);await updateDoc(doc(db,'users',id),{active:s.active===false});render()};
+V.att=async bs=>{if(!S.bid)return nob;const L=act(),k=S.bid+'_'+S.date;
+if(!S.am||S.am.k!=k){const d=await getDoc(doc(db,'att',k)),x=d.exists()?d.data():null;S.sv=!!x;S.am={k,m:{}};L.forEach(s=>S.am.m[s.id]=x&&x.A.includes(s.id)?'A':x&&x.E.includes(s.id)?'E':'P')}
+return `${bs}<input type="date" value="${S.date}" onchange="S.date=this.value;S.am=null;f.r()"><button onclick="f.allP()">Mark all Present</button> <button class="pri" onclick="f.saveDay()">Save class day</button><p class="mut">${S.sv?'Saved class day.':'Not saved: not counted as a class day.'} Tap a name: Present → Absent → Excused.</p>${L.map(s=>`<button id="b${s.id}" class="stu ${S.am.m[s.id]}" onclick="f.cyc('${s.id}')"><span>${esc(s.name)}</span><i>${NM[S.am.m[s.id]]}</i></button>`).join('')}`};
+f.cyc=id=>{const n={P:'A',A:'E',E:'P'}[S.am.m[id]];S.am.m[id]=n;const e=$('#b'+id);e.className='stu '+n;e.lastChild.textContent=NM[n]};
+f.allP=()=>{Object.keys(S.am.m).forEach(k=>S.am.m[k]='P');render()};
+f.saveDay=async()=>{const m=S.am.m,K=x=>Object.keys(m).filter(k=>m[k]==x);await setDoc(doc(db,'att',S.am.k),{bid:S.bid,date:S.date,A:K('A'),E:K('E')});await recalc(S.bid);S.am=null;alert('Saved');render()};
+V.ex=async bs=>{if(!S.bid)return nob;const E=(await snap('exams',where('bid','==',S.bid))).sort((x,y)=>y.date>x.date?1:-1),e=E.find(x=>x.id==S.eid)||E[0];S.E=e;if(e){S.eid=e.id;if(!e.subs[S.si])S.si=0}const u=e&&e.subs[S.si];
+return `${bs}<div class="card"><h3>New exam</h3><input id="et" placeholder="Exam name"><input id="ed" type="date" value="${T()}"><input id="es" placeholder="Bangla 100, English 50"><button onclick="f.addEx()">Create exam</button></div>
+${e?`<select onchange="S.eid=this.value;S.si=0;f.r()">${E.map(x=>`<option value="${x.id}" ${x.id==e.id?'selected':''}>${esc(x.title)} · ${x.date}</option>`).join('')}</select><div class="bar">${e.subs.map((x,i)=>`<button class="${i==S.si?'on':''}" onclick="S.si=${i};f.r()">${esc(x.n)} · ${x.st=='H'?'Held':'Not Happened'}</button>`).join('')}</div>
+<div class="card"><label><input type="checkbox" style="width:auto" ${u.st=='H'?'checked':''} onchange="f.held(this.checked)"> Exam held · out of ${u.total}</label><p class="mut">Held + blank = Absent (0). Not Happened is left out.</p>${act().map(s=>`<div class="li"><span>${esc(s.name)}<br><span class="mut">${s.roll}</span></span><input type="number" style="width:90px;margin:0" max="${u.total}" ${u.st=='H'?'':'disabled'} placeholder="Absent (0)" value="${u.m[s.id]??''}" oninput="f.setM('${s.id}',this.value)"></div>`).join('')}<button class="pri" onclick="f.saveEx()">Save marks</button></div>`:''}`};
+const putEx=async()=>{const {id,...x}=S.E;await setDoc(doc(db,'exams',id),x);await recalc(S.bid)};
+f.addEx=async()=>{const t=$('#et').value.trim(),subs=$('#es').value.split(',').map(x=>x.trim().match(/^(.+?)\s+(\d+)$/)).filter(Boolean).map(x=>({n:x[1],total:+x[2],st:'NH',m:{}}));
+if(!t||!subs.length)return alert('Add a name and subjects like: Bangla 100, English 50');const r=await addDoc(collection(db,'exams'),{bid:S.bid,title:t,date:$('#ed').value||T(),subs});S.eid=r.id;S.si=0;render()};
+f.held=async on=>{S.E.subs[S.si].st=on?'H':'NH';await putEx();render()};
+f.setM=(id,v)=>{const u=S.E.subs[S.si];if(v==='')delete u.m[id];else u.m[id]=Math.min(+v,u.total)};
+f.saveEx=async()=>{await putEx();alert('Marks saved')};
+V.fee=async bs=>{if(!S.bid)return nob;const L=act(),P=await snap('pay',where('m','==',S.fm)),pd=id=>P.filter(p=>p.sid==id).reduce((a,p)=>a+p.amt,0);
+return `${bs}<input type="month" value="${S.fm}" onchange="S.fm=this.value;f.r()"><div class="card"><h3>Add payment</h3><select id="ps">${L.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('')}</select><input id="pa" type="number" placeholder="Amount"><select id="pm"><option>Cash</option><option>bKash</option><option>Nagad</option></select><input id="pt" placeholder="Transaction ID (online only)"><button class="pri" onclick="f.addPay()">Add payment</button></div>
+<div class="card"><h3>${S.fm}</h3>${L.map(s=>{const p=pd(s.id),t=!s.fee?['No fee','']:p>=s.fee?['Paid','ok']:p>0?['Partial','warn']:['Due','bad'];return `<div class="li"><span>${esc(s.name)}<br><span class="mut">৳${p} of ৳${s.fee||0}</span></span><b class="${t[1]}">${t[0]}</b></div>`}).join('')}</div>`};
+f.addPay=async()=>{const a=+$('#pa').value,t=$('#pt').value.trim();if(!(a>0))return alert('Enter the amount');if(t&&(await snap('pay',where('tx','==',t))).length)return alert('This Transaction ID is already used');
+await addDoc(collection(db,'pay'),{sid:$('#ps').value,m:S.fm,amt:a,method:$('#pm').value,tx:t});render()};
+async function student(){while(me.mustChange){const np=prompt('First login: choose a new password (min 6 characters)');if(np&&np.length>=6)try{await updatePassword(auth.currentUser,np);await updateDoc(doc(db,'users',me.id),{mustChange:false});me.mustChange=false}catch(e){alert(e.message)}}
+const s=me.stats||{};out(`<div class="bar"><b>${esc(me.name)}</b> <span class="mut">Roll ${me.roll}</span><button onclick="f.out()">Logout</button></div><div class="card"><h3>This month</h3><p>Exam: <b>${f1(s.ex)}</b> · Rank ${s.er||'–'} of ${s.n||'–'}</p><p>Overall: <b>${f1(s.ov)}</b> · Rank ${s.or||'–'} of ${s.n||'–'}</p><p class="mut">Present ${s.p||0} · Absent ${s.a||0}</p></div><div class="card"><h3>Fees</h3><div id="pl">Loading…</div></div>`);
+const P=await snap('pay',where('sid','==',me.id));$('#pl').innerHTML=P.sort((x,y)=>y.m>x.m?1:-1).map(p=>`<div class="li"><span>${p.m}</span><span>৳${p.amt} · ${esc(p.method)}</span></div>`).join('')||'<p class="mut">No payments yet.</p>'}
