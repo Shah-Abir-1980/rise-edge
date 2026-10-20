@@ -5,13 +5,13 @@ import {cfg} from "./config.js";
 const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const T=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)},f1=v=>v==null?'–':Math.round(v*10)/10+'%';
 const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app),em=u=>u.trim().toLowerCase()+'@rise.local',NM={P:'Present',A:'Absent',E:'Excused'};
-let me,B=[],U=[],setting=false;const S={tab:'stu',bid:null,date:T(),fm:T().slice(0,7),si:0},V={},f={},out=h=>{$('#a').innerHTML=h};
+let me,B=[],U=[],TC=[],setting=false;const S={tab:'stu',bid:null,date:T(),fm:T().slice(0,7),si:0},V={},f={},out=h=>{$('#a').innerHTML=h};
 window.S=S;window.f=f;
 const snap=async(c,...w)=>(await getDocs(w.length?query(collection(db,c),...w):collection(db,c))).docs.map(d=>({id:d.id,...d.data()}));
-const act=()=>U.filter(s=>s.bid==S.bid&&s.active!==false),nob='<div class="card">Add a batch first (Students tab).</div>';
+const act=()=>U.filter(s=>s.bid==S.bid&&s.active!==false),nob='<div class="card">No batch yet. The admin adds batches and assigns them to teachers.</div>';
 onAuthStateChanged(auth,async u=>{if(setting)return;if(!u)return login();const s=await getDoc(doc(db,'users',u.uid));
 if(!s.exists()||s.data().active===false){await signOut(auth);return login('No access. Ask the admin.')}
-me={id:u.uid,...s.data()};me.role=='admin'?render():student()});
+me={id:u.uid,...s.data()};me.role=='student'?student():(await chg(),S.tab=me.role=='teacher'?'att':'stu',render())});
 function login(m=''){out(`<div class="card"><h2>Rise Edge Academy</h2><p class="mut">${m}</p><input id="u" placeholder="Roll number (admin: admin)" autocapitalize="none"><input id="p" type="password" placeholder="Password"><button class="pri" id="lg">Login</button> <button id="su">First-time setup (admin only)</button></div>`);
 $('#lg').onclick=async()=>{try{await signInWithEmailAndPassword(auth,em($('#u').value),$('#p').value)}catch(e){login('Wrong roll or password')}};$('#su').onclick=setup}
 async function setup(){if((await getDoc(doc(db,'config','init'))).exists())return login('Setup is already done.');
@@ -23,9 +23,11 @@ const R=L.map(s=>{let p=0,a=0,g=0,t=0;A.forEach(d=>{if(d.A.includes(s.id))a++;el
 // same score = same rank (1,1,2,2,3)
 const rk=k=>{const v=[...new Set(R.filter(r=>r[k]!=null).map(r=>Math.round(r[k]*100)))].sort((x,y)=>y-x);return r=>r[k]==null?null:v.indexOf(Math.round(r[k]*100))+1},re=rk('ex'),ro=rk('ov');
 await Promise.all(R.map(r=>updateDoc(doc(db,'users',r.s.id),{stats:{ex:r.ex,er:re(r),ov:r.ov,or:ro(r),p:r.p,a:r.a,n:R.length}})))}
-async function render(){B=await snap('batches');U=await snap('users',where('role','==','student'));S.bid=B.some(b=>b.id==S.bid)?S.bid:(B[0]||{}).id;
+async function render(){const tc=me.role=='teacher';B=await snap('batches');TC=[];
+if(tc){B=B.filter(b=>(me.bids||[]).includes(b.id));U=(await Promise.all(B.map(b=>snap('users',where('bid','==',b.id))))).flat().filter(s=>s.role=='student')}else{U=await snap('users',where('role','==','student'));TC=await snap('users',where('role','==','teacher'))}
+S.bid=B.some(b=>b.id==S.bid)?S.bid:(B[0]||{}).id;
 const bs=`<select onchange="S.bid=this.value;S.am=null;f.r()">${B.map(b=>`<option value="${b.id}" ${b.id==S.bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`;
-out(`<div class="bar">${[['stu','Students'],['att','Attendance'],['ex','Exams'],['fee','Fees']].map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="S.tab='${t[0]}';S.am=null;f.r()">${t[1]}</button>`).join('')}<button onclick="f.out()">Logout</button></div>${await V[S.tab](bs)}`)}
+out(`<div class="bar">${(tc?[['mo','Month'],['att','Attendance'],['ex','Exams']]:[['stu','Students'],['tch','Teachers'],['att','Attendance'],['ex','Exams'],['fee','Fees']]).map(t=>`<button class="${S.tab==t[0]?'on':''}" onclick="S.tab='${t[0]}';S.am=null;f.r()">${t[1]}</button>`).join('')}<button onclick="f.out()">Logout</button></div>${await V[S.tab](bs)}`)}
 Object.assign(f,{r:render,out:()=>signOut(auth)});
 V.stu=bs=>{const b=B.find(x=>x.id==S.bid);return `<div class="card"><h3>Batch</h3><input id="bn" placeholder="New batch name"><button onclick="f.addB()">Add batch</button>${b?`<hr>${bs}<p class="mut">Month started on (wrong date? change it, ranks recalculate)</p><input type="date" value="${b.start}" onchange="f.setStart(this.value)"><button onclick="f.newMonth()">Start new month</button>`:''}</div>
 ${b?`<div class="card"><h3>Add student</h3><input id="sn" placeholder="Name"><input id="sg" placeholder="Guardian phone"><input id="ss" placeholder="School"><input id="sf" type="number" placeholder="Monthly fee"><button class="pri" onclick="f.addStu()">Add student</button></div>`:''}
@@ -34,7 +36,7 @@ f.addB=async()=>{const n=$('#bn').value.trim();if(!n)return;await addDoc(collect
 f.setStart=async v=>{if(!v)return;await updateDoc(doc(db,'batches',S.bid),{start:v});B.find(b=>b.id==S.bid).start=v;await recalc(S.bid);alert('Recalculated')};
 f.newMonth=async()=>{if(!confirm('Close this month and start a new one today?'))return;const b=B.find(x=>x.id==S.bid);
 await addDoc(collection(db,'records'),{bid:b.id,bn:b.name,from:b.start,to:T(),rows:U.filter(s=>s.bid==b.id&&s.stats).map(s=>({n:s.name,roll:s.roll,...s.stats}))});await updateDoc(doc(db,'batches',b.id),{start:T()});B.find(x=>x.id==b.id).start=T();await recalc(b.id);alert('New month started');render()};
-f.addStu=async()=>{const n=$('#sn').value.trim();if(!n)return alert('Enter the name');let r;do r=String(100000+Math.floor(Math.random()*900000));while(U.some(s=>s.roll==r));
+f.addStu=async()=>{const n=$('#sn').value.trim();if(!n)return alert('Enter the name');let r;do r=String(100000+Math.floor(Math.random()*900000));while(U.some(s=>s.roll==r)||TC.some(s=>s.roll==r));
 const pw=Math.random().toString(36).slice(2,8)+'A1',a2=getAuth(initializeApp(cfg,'s'+Date.now()));
 try{const c=await createUserWithEmailAndPassword(a2,em(r),pw);await signOut(a2);await setDoc(doc(db,'users',c.user.uid),{role:'student',name:n,roll:r,bid:S.bid,fee:+$('#sf').value||0,gphone:$('#sg').value,school:$('#ss').value,active:true,mustChange:true});
 alert('Roll (username): '+r+'\nPassword: '+pw+'\nGive this to the student.');render()}catch(e){alert(e.message)}};
@@ -60,6 +62,16 @@ return `${bs}<input type="month" value="${S.fm}" onchange="S.fm=this.value;f.r()
 <div class="card"><h3>${S.fm}</h3>${L.map(s=>{const p=pd(s.id),t=!s.fee?['No fee','']:p>=s.fee?['Paid','ok']:p>0?['Partial','warn']:['Due','bad'];return `<div class="li"><span>${esc(s.name)}<br><span class="mut">৳${p} of ৳${s.fee||0}</span></span><b class="${t[1]}">${t[0]}</b></div>`}).join('')}</div>`};
 f.addPay=async()=>{const a=+$('#pa').value,t=$('#pt').value.trim();if(!(a>0))return alert('Enter the amount');if(t&&(await snap('pay',where('tx','==',t))).length)return alert('This Transaction ID is already used');
 await addDoc(collection(db,'pay'),{sid:$('#ps').value,m:S.fm,amt:a,method:$('#pm').value,tx:t});render()};
-async function student(){while(me.mustChange){const np=prompt('First login: choose a new password (min 6 characters)');if(np&&np.length>=6)try{await updatePassword(auth.currentUser,np);await updateDoc(doc(db,'users',me.id),{mustChange:false});me.mustChange=false}catch(e){alert(e.message)}}
-const s=me.stats||{};out(`<div class="bar"><b>${esc(me.name)}</b> <span class="mut">Roll ${me.roll}</span><button onclick="f.out()">Logout</button></div><div class="card"><h3>This month</h3><p>Exam: <b>${f1(s.ex)}</b> · Rank ${s.er||'–'} of ${s.n||'–'}</p><p>Overall: <b>${f1(s.ov)}</b> · Rank ${s.or||'–'} of ${s.n||'–'}</p><p class="mut">Present ${s.p||0} · Absent ${s.a||0}</p></div><div class="card"><h3>Fees</h3><div id="pl">Loading…</div></div>`);
+async function chg(){while(me.mustChange){const np=prompt('First login: choose a new password (min 6 characters)');if(np&&np.length>=6)try{await updatePassword(auth.currentUser,np);await updateDoc(doc(db,'users',me.id),{mustChange:false});me.mustChange=false}catch(e){alert(e.message)}}}
+async function student(){await chg();const s=me.stats||{};out(`<div class="bar"><b>${esc(me.name)}</b> <span class="mut">Roll ${me.roll}</span><button onclick="f.out()">Logout</button></div><div class="card"><h3>This month</h3><p>Exam: <b>${f1(s.ex)}</b> · Rank ${s.er||'–'} of ${s.n||'–'}</p><p>Overall: <b>${f1(s.ov)}</b> · Rank ${s.or||'–'} of ${s.n||'–'}</p><p class="mut">Present ${s.p||0} · Absent ${s.a||0}</p></div><div class="card"><h3>Fees</h3><div id="pl">Loading…</div></div>`);
 const P=await snap('pay',where('sid','==',me.id));$('#pl').innerHTML=P.sort((x,y)=>y.m>x.m?1:-1).map(p=>`<div class="li"><span>${p.m}</span><span>৳${p.amt} · ${esc(p.method)}</span></div>`).join('')||'<p class="mut">No payments yet.</p>'}
+
+V.mo=bs=>{const b=B.find(x=>x.id==S.bid);if(!b)return nob;const R=U.filter(s=>s.bid==S.bid&&s.stats).sort((x,y)=>(x.stats.er||999)-(y.stats.er||999));
+return `${bs}<div class="card"><h3>Month</h3><p class="mut">Started on (wrong date? change it, ranks recalculate)</p><input type="date" value="${b.start}" onchange="f.setStart(this.value)"><button onclick="f.newMonth()">Start new month</button></div><div class="card"><h3>Rank</h3>${R.map(s=>`<div class="li"><span>${esc(s.name)}</span><span>Exam ${f1(s.stats.ex)} (#${s.stats.er||'–'}) · Overall ${f1(s.stats.ov)} (#${s.stats.or||'–'})</span></div>`).join('')||'<p class="mut">No data yet.</p>'}</div>`};
+V.tch=()=>`<div class="card"><h3>Add teacher</h3><input id="tn" placeholder="Name"><input id="tj" placeholder="Subject"><input id="tp" placeholder="Phone"><button class="pri" onclick="f.addTch()">Add teacher</button></div>${TC.map(t=>`<div class="card"><b>${esc(t.name)}</b> <span class="mut">Roll ${t.roll} · ${esc(t.subject||'')}${t.active===false?' · Inactive':''}</span><p class="mut">Tick the batches this teacher can use:</p>${B.map(b=>`<label class="li"><span>${esc(b.name)}</span><input type="checkbox" style="width:auto;margin:0" ${(t.bids||[]).includes(b.id)?'checked':''} onchange="f.asg('${t.id}','${b.id}',this.checked)"></label>`).join('')||'<p class="mut">Add a batch first.</p>'}<button onclick="f.tgT('${t.id}')">${t.active===false?'Reactivate':'Deactivate'}</button></div>`).join('')||'<p class="mut">No teachers yet.</p>'}`;
+f.addTch=async()=>{const n=$('#tn').value.trim();if(!n)return alert('Enter the name');let r;do r=String(100000+Math.floor(Math.random()*900000));while(U.some(s=>s.roll==r)||TC.some(s=>s.roll==r));
+const pw=Math.random().toString(36).slice(2,8)+'A1',a2=getAuth(initializeApp(cfg,'s'+Date.now()));
+try{const c=await createUserWithEmailAndPassword(a2,em(r),pw);await signOut(a2);await setDoc(doc(db,'users',c.user.uid),{role:'teacher',name:n,roll:r,subject:$('#tj').value,phone:$('#tp').value,bids:[],active:true,mustChange:true});
+alert('Roll (username): '+r+'\nPassword: '+pw+'\nGive this to the teacher.');render()}catch(e){alert(e.message)}};
+f.asg=async(t,b,on)=>{const x=TC.find(q=>q.id==t),z=new Set(x.bids||[]);on?z.add(b):z.delete(b);x.bids=[...z];await updateDoc(doc(db,'users',t),{bids:x.bids})};
+f.tgT=async id=>{const t=TC.find(x=>x.id==id);await updateDoc(doc(db,'users',id),{active:t.active===false});render()};

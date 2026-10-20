@@ -3,14 +3,32 @@ service cloud.firestore {
   match /databases/{d}/documents {
     function adm() { return request.auth != null && get(/databases/$(d)/documents/users/$(request.auth.uid)).data.role == 'admin'; }
     function fresh() { return !exists(/databases/$(d)/documents/config/init); }
+    function tch(b) { return request.auth != null && get(/databases/$(d)/documents/users/$(request.auth.uid)).data.role == 'teacher' && b in get(/databases/$(d)/documents/users/$(request.auth.uid)).data.bids; }
     match /{c}/{id} { allow read, write: if adm(); }
     match /config/{id} { allow read: if true; allow create: if request.auth != null && fresh(); }
     match /users/{id} {
       allow read: if request.auth != null && request.auth.uid == id;
+      allow read: if tch(resource.data.bid);
       allow create: if request.auth != null && request.auth.uid == id && fresh() && request.resource.data.role == 'admin';
       allow update: if request.auth != null && request.auth.uid == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChange']);
+      allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats']);
     }
-    match /batches/{id} { allow read: if request.auth != null; }
+    match /batches/{id} {
+      allow read: if request.auth != null;
+      allow update: if tch(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['start']);
+    }
     match /pay/{id} { allow read: if request.auth != null && resource.data.sid == request.auth.uid; }
+    match /att/{id} {
+      allow get: if tch(id.split('_')[0]);
+      allow list: if tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid);
+      allow update, delete: if tch(resource.data.bid);
+    }
+    match /exams/{id} {
+      allow read: if tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid);
+      allow update: if tch(resource.data.bid) && tch(request.resource.data.bid);
+    }
+    match /records/{id} { allow create: if tch(request.resource.data.bid); }
   }
 }
