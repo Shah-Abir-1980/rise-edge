@@ -29,6 +29,12 @@ service cloud.firestore {
       allow create: if tch(request.resource.data.bid);
       allow update: if tch(resource.data.bid) && tch(request.resource.data.bid);
     }
+    match /hw/{id} {
+      allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(request.auth.uid)).data.bid;
+      allow read: if tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid);
+      allow update: if tch(resource.data.bid) && tch(request.resource.data.bid);
+    }
     match /records/{id} { allow create: if tch(request.resource.data.bid); }
   }
 }
