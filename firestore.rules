@@ -42,6 +42,13 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.to == 'batch' && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
       allow read: if resource.data.to == 'batch' && tch(resource.data.bid);
       allow create: if tch(request.resource.data.bid) && request.resource.data.to in ['batch', 'admin'];
+      allow create: if tch(get(/databases/$(d)/documents/users/$(request.resource.data.to)).data.get('bid', ''));
+    }
+    match /rq/{id} {
+      allow read: if request.auth != null && resource.data.sid == sid();
+      allow read: if resource.data.h == 't' && tch(resource.data.bid);
+      allow create: if request.auth != null && request.resource.data.sid == sid() && request.resource.data.st == 'new' && request.resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
+      allow update: if resource.data.h == 't' && tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st', 'rp']);
     }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
     match /login/{id} { allow read: if true; }
