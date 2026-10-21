@@ -25,3 +25,8 @@ Needs: GitHub account + Google account. No computer, no card. (Firebase "Spark" 
 
 ## Not included yet
 Teacher login, homework, requests, progress report PDF, MCQ/CQ, notice/routine, Records viewer, forgot-password. Firebase Storage and Cloud Functions need a paid plan, so CQ photos and automatic email are done differently later.
+
+## Update v2 – what to do
+1. Upload the new app.js (replace the old one) to GitHub.
+2. Firebase → Firestore → Rules → paste the new firestore.rules → Publish. (Required, or new features will not save.)
+3. Admin → Batches → choose each batch's Class (6-10) so the NCTB syllabus shows.

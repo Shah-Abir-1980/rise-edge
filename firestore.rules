@@ -3,12 +3,17 @@ service cloud.firestore {
   match /databases/{d}/documents {
     function sid() { return exists(/databases/$(d)/documents/map/$(request.auth.uid)) ? get(/databases/$(d)/documents/map/$(request.auth.uid)).data.sid : request.auth.uid; }
     function adm() { return request.auth != null && get(/databases/$(d)/documents/users/$(sid())).data.role == 'admin'; }
+    function cadm() { return request.auth != null && (get(/databases/$(d)/documents/users/$(sid())).data.role == 'admin' || (get(/databases/$(d)/documents/users/$(sid())).data.role == 'teacher' && get(/databases/$(d)/documents/users/$(sid())).data.get('ca', false) == true && get(/databases/$(d)/documents/users/$(sid())).data.get('active', true) != false)); }
+    function myb() { return get(/databases/$(d)/documents/users/$(sid())).data.get('bid', ''); }
     function fresh() { return !exists(/databases/$(d)/documents/config/init); }
     function tch(b) { return request.auth != null && get(/databases/$(d)/documents/users/$(sid())).data.role == 'teacher' && b in get(/databases/$(d)/documents/users/$(sid())).data.bids; }
     function tpub() { return get(/databases/$(d)/documents/users/$(sid())).data.get('pub', false) == true; }
-    match /{c}/{id} { allow read, write: if adm(); }
+    match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users'); }
     match /config/{id} { allow read: if true; allow create: if request.auth != null && fresh(); }
     match /users/{id} {
+      allow read: if cadm();
+      allow create: if cadm() && request.resource.data.role in ['student', 'teacher'] && request.resource.data.get('ca', false) == false;
+      allow update: if cadm() && resource.data.role != 'admin' && request.resource.data.role == resource.data.role && request.resource.data.get('ca', false) == resource.data.get('ca', false);
       allow read: if request.auth != null && sid() == id;
       allow read: if tch(resource.data.bid);
       allow create: if request.auth != null && sid() == id && fresh() && request.resource.data.role == 'admin';
@@ -83,12 +88,25 @@ service cloud.firestore {
     }
     match /users/{id}/reports/{r} {
       allow read: if request.auth != null && sid() == id;
-      allow write: if tpub() && tch(get(/databases/$(d)/documents/users/$(id)).data.bid);
+      allow write: if cadm() || tpub() && tch(get(/databases/$(d)/documents/users/$(id)).data.bid);
     }
     match /records/{id} { allow read: if tch(resource.data.bid); allow create: if tch(request.resource.data.bid); }
     match /users/{id}/hist/{h} {
       allow read: if request.auth != null && sid() == id;
-      allow create: if adm() || tch(get(/databases/$(d)/documents/users/$(id)).data.bid);
+      allow create: if cadm() || tch(get(/databases/$(d)/documents/users/$(id)).data.bid);
+    }
+    match /sd/{id} {
+      allow read: if request.auth != null && (tch(id) || myb() == id);
+      allow write: if tch(id);
+    }
+    match /ms/{id} {
+      allow read: if request.auth != null && sid() == id;
+      allow read: if tch(resource.data.bid);
+      allow create, update: if request.auth != null && sid() == id && request.resource.data.sid == id && request.resource.data.bid == myb();
+    }
+    match /yr/{id} {
+      allow get: if tch(id.split('_')[0]);
+      allow read: if request.auth != null && resource.data.pub == true && resource.data.bid == myb();
     }
   }
 }
