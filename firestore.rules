@@ -37,6 +37,12 @@ service cloud.firestore {
       allow create: if tch(request.resource.data.bid);
       allow update: if tch(resource.data.bid) && tch(request.resource.data.bid);
     }
+    match /nt/{id} {
+      allow read: if request.auth != null && resource.data.to == sid();
+      allow read: if request.auth != null && resource.data.to == 'batch' && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
+      allow read: if resource.data.to == 'batch' && tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid) && request.resource.data.to in ['batch', 'admin'];
+    }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
