@@ -26,4 +26,13 @@ button.pri{background:linear-gradient(135deg,var(--pri),color-mix(in srgb,var(--
 .chip2{display:inline-block;background:color-mix(in srgb,var(--pri) 12%,var(--card));color:var(--pri);padding:6px 12px;border-radius:999px;font-weight:600;font-size:13px;margin:10px 6px 0 0}
 .pbtn{display:inline-block;margin-top:6px;padding:10px 16px;border-radius:12px;background:color-mix(in srgb,var(--pri) 12%,var(--card));color:var(--pri);font-weight:600;cursor:pointer}
 details.card>summary{list-style:none;font-weight:700;color:var(--pri);cursor:pointer}
+
+.bar{position:static;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;padding:0 0 8px}
+.top{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5;margin:0 0 12px;padding:8px 0;background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.top b{font-size:18px}.ham{font-size:20px;min-height:42px;padding:6px 14px;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:15;opacity:0;pointer-events:none;transition:opacity .2s}body.mo #ov{opacity:1;pointer-events:auto}
+#sd{position:fixed;top:0;bottom:0;left:0;width:80%;max-width:300px;background:var(--card);z-index:20;transform:translateX(-105%);transition:transform .22s;padding:calc(14px + env(safe-area-inset-top,0px)) 12px calc(20px + env(safe-area-inset-bottom,0px));overflow-y:auto;box-shadow:6px 0 30px rgba(0,0,0,.25)}body.mo #sd{transform:none}
+#sd .sh{display:flex;align-items:center;gap:10px;padding:6px 6px 14px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+#sd a{display:block;padding:12px 14px;border-radius:12px;margin:2px 0;cursor:pointer;font-weight:600}#sd a.on{background:var(--pri);color:var(--on)}
+#rp,#rp *{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{margin:10mm}
 </style></head><body><div id="rp" hidden></div><div id="a">Loading…</div><script type="module" src="app.js"></script></body></html>

@@ -50,6 +50,31 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.sid == sid() && request.resource.data.st == 'new' && request.resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
       allow update: if resource.data.h == 't' && tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['st', 'rp']);
     }
+    match /fl/{id} {
+      allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
+      allow read: if tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid);
+      allow delete: if tch(resource.data.bid);
+    }
+    match /fd/{id} {
+      allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
+      allow read: if tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid);
+      allow delete: if tch(resource.data.bid);
+    }
+    match /sy/{id} {
+      allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
+      allow read: if tch(resource.data.bid);
+      allow create: if tch(request.resource.data.bid);
+      allow delete: if tch(resource.data.bid);
+    }
+    match /sp/{id} {
+      allow read: if request.auth != null && resource.data.sid == sid();
+      allow read: if tch(resource.data.bid);
+      allow create: if request.auth != null && request.resource.data.sid == sid() && request.resource.data.ok.size() == 0 && request.resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
+      allow update: if request.auth != null && resource.data.sid == sid() && request.resource.data.ok == resource.data.ok;
+      allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ok', 'sel', 'rej']);
+    }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
