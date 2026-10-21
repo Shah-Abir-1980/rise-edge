@@ -30,3 +30,7 @@ Teacher login, homework, requests, progress report PDF, MCQ/CQ, notice/routine, 
 1. Upload the new app.js (replace the old one) to GitHub.
 2. Firebase → Firestore → Rules → paste the new firestore.rules → Publish. (Required, or new features will not save.)
 3. Admin → Batches → choose each batch's Class (6-10) so the NCTB syllabus shows.
+
+## Update v3 – what to do
+1. Upload the new index.html and app.js to GitHub (replace the old ones). Rules do not change.
+2. New: modern design; full NCTB syllabus (Bangla 1st & 2nd, English 1st & 2nd, Math, Science, BGS, Islam) and group subjects for Class 9-10 (Science / Commerce / Arts).
