@@ -82,6 +82,7 @@ service cloud.firestore {
       allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ok', 'sel', 'rej']);
     }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
+    match /reg/{id} { allow create: if request.resource.data.st == 'pending' && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'st', 't']); }
     match /log/{id} { allow read: if cadm(); allow create: if cadm() && request.resource.data.uid == sid(); }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
