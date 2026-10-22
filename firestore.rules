@@ -8,11 +8,12 @@ service cloud.firestore {
     function fresh() { return !exists(/databases/$(d)/documents/config/init); }
     function tch(b) { return request.auth != null && get(/databases/$(d)/documents/users/$(sid())).data.role == 'teacher' && b in get(/databases/$(d)/documents/users/$(sid())).data.bids; }
     function tpub() { return get(/databases/$(d)/documents/users/$(sid())).data.get('pub', false) == true; }
-    match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users'); }
+    match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users' && c != 'log'); }
     match /config/{id} { allow read: if true; allow create: if request.auth != null && fresh(); }
     match /users/{id} {
       allow read: if cadm();
       allow create: if cadm() && request.resource.data.role in ['student', 'teacher'] && request.resource.data.get('ca', false) == false;
+      allow delete: if cadm() && resource.data.role in ['student', 'teacher'] && resource.data.get('ca', false) == false;
       allow update: if cadm() && resource.data.role != 'admin' && request.resource.data.role == resource.data.role && request.resource.data.get('ca', false) == resource.data.get('ca', false);
       allow read: if request.auth != null && sid() == id;
       allow read: if tch(resource.data.bid);
@@ -81,6 +82,7 @@ service cloud.firestore {
       allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ok', 'sel', 'rej']);
     }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
+    match /log/{id} { allow read: if cadm(); allow create: if cadm() && request.resource.data.uid == sid(); }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
       allow get: if tch(id.split('_')[0]);
