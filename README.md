@@ -1,36 +1,25 @@
-# Rise Edge Academy — setup (phone only, free)
+# Rise Edge Academy
 
-Needs: GitHub account + Google account. No computer, no card. (Firebase "Spark" plan only.)
+Free web app: GitHub Pages (hosting) + Firebase Auth and Firestore (login and data). No computer needed.
 
-## 1. GitHub
-1. github.com → Sign up → New repository → name `rise-edge`, Public → Create.
-2. Unzip this file on your phone (Files app → tap zip → Extract).
-3. In the repo: Add file → Upload files → choose index.html, app.js, config.js, firestore.rules → Commit changes.
+## Files
+index.html, app.js, config.js (your Firebase keys), firestore.rules, logo.jpg, qr.png
 
-## 2. Firebase project
-1. console.firebase.google.com → Add project → name it → turn Google Analytics off → Create.
-2. Build → Authentication → Get started → Email/Password → Enable → Save.
-3. Build → Firestore Database → Create database → Production mode → pick a nearby location → Enable.
-4. Firestore → Rules tab → delete everything → paste all text of firestore.rules → Publish.
-5. Project settings (gear) → Your apps → Web icon `</>` → nickname → Register app → copy apiKey, authDomain, projectId, appId.
+## First setup
+1. GitHub: create a public repo, upload all files, then Settings > Pages > Branch main, folder root > Save.
+2. Firebase: create a project, enable Authentication > Email/Password, create Firestore Database (production mode).
+3. Firestore > Rules: paste all of firestore.rules > Publish.
+4. Project settings > Your apps > Web: copy apiKey, authDomain, projectId, appId into config.js.
+5. Open your site, tap "First-time setup (admin only)" and create the admin. Only shown while no admin exists.
 
-## 3. Connect
-1. GitHub → open config.js → pencil icon → replace each PASTE_HERE → Commit.
-2. Repo → Settings → Pages → Branch `main`, folder `/ (root)` → Save. After 1–2 minutes your link shows: https://YOURNAME.github.io/rise-edge/
+## Login
+Students and teachers: roll number (REAS-2026-001 / REAT-2026-001) and password.
+Admin: your name, or your email (Profile > Login with email), or `admin`.
 
-## 4. First use
-1. Open the link → "First-time setup (admin only)" → enter your name and a password. Username for login is `admin`.
-2. Students tab → Add batch → Add student. The app shows each student's roll (username) and password. Give it to the student; they must change it at first login.
-3. Browser menu → Add to Home Screen.
+## Registration emails (free, EmailJS)
+emailjs.com > connect your email > create a template using {{to_email}}, {{to_name}}, {{roll}}, {{password}}.
+Then Admin > Registrations > Email setup: paste Public key, Service ID, Template ID.
 
-## Not included yet
-Teacher login, homework, requests, progress report PDF, MCQ/CQ, notice/routine, Records viewer, forgot-password. Firebase Storage and Cloud Functions need a paid plan, so CQ photos and automatic email are done differently later.
-
-## Update v2 – what to do
-1. Upload the new app.js (replace the old one) to GitHub.
-2. Firebase → Firestore → Rules → paste the new firestore.rules → Publish. (Required, or new features will not save.)
-3. Admin → Batches → choose each batch's Class (6-10) so the NCTB syllabus shows.
-
-## Update v3 – what to do
-1. Upload the new index.html and app.js to GitHub (replace the old ones). Rules do not change.
-2. New: modern design; full NCTB syllabus (Bangla 1st & 2nd, English 1st & 2nd, Math, Science, BGS, Islam) and group subjects for Class 9-10 (Science / Commerce / Arts).
+## Notes
+- Deleting a user in the app removes the profile and login access. Their Firebase Authentication entry stays, so roll serial numbers keep counting upward.
+- To restart numbering from 001: Firebase > Authentication > delete the old users, and Firestore > config > delete the document `ctr`.
