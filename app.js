@@ -11,11 +11,16 @@ new MutationObserver(()=>tr($('#a'))).observe($('#a'),{childList:true,subtree:tr
 const app=initializeApp(cfg),auth=getAuth(app),db=getFirestore(app),em=u=>u.trim().toLowerCase()+'@rise.local',NM={P:'Present',A:'Absent',E:'Excused'};
 let me,B=[],U=[],TC=[],INST={},RP={},setting=false;const S={tab:'stu',bid:null,date:T(),fm:T().slice(0,7),si:0},V={},f={},out=h=>{$('#a').innerHTML='<div style="text-align:right;margin-bottom:6px"><button onclick="f.lang()">'+(LG=='bn'?'English':'বাংলা')+'</button></div>'+h};
 window.S=S;window.f=f;
+function fail(e){console.error(e);const m=String((e&&e.message)||e||'Unknown error'),h=/permission/i.test(m)?'The database rules block this. Publish the latest firestore.rules in Firebase > Firestore > Rules.':/offline|unavailable|network/i.test(m)?'Cannot reach the database. Check the internet. In Firebase the Firestore database must be the (default) one.':'Tap Retry. If it keeps happening, send this message to the developer.';
+out('<div class="card"><h3>Something went wrong</h3><p class="bad">'+esc(m)+'</p><p class="mut">'+esc(h)+'</p><button class="pri" onclick="location.reload()">Retry</button> <button onclick="f.out()">Logout</button></div>')}
+window.addEventListener('unhandledrejection',e=>{if(document.querySelector('#a .ld'))fail(e.reason)});window.addEventListener('error',e=>{if(document.querySelector('#a .ld'))fail(e.error||e.message)});
+
 const snap=async(c,...w)=>(await getDocs(w.length?query(collection(db,c),...w):collection(db,c))).docs.map(d=>({id:d.id,...d.data()}));
 const act=()=>U.filter(s=>s.bid==S.bid&&s.active!==false),nob='<div class="card">No batch yet. The admin adds batches and assigns them to teachers.</div>';
-onAuthStateChanged(auth,async u=>{if(setting)return;if(!u)return login();const [mp,s0,iq]=await Promise.all([getDoc(doc(db,'map',u.uid)),getDoc(doc(db,'users',u.uid)),getDoc(doc(db,'config','inst')).catch(()=>null)]),uid=mp.exists()?mp.data().sid:u.uid,s=uid==u.uid?s0:await getDoc(doc(db,'users',uid));
+onAuthStateChanged(auth,u=>start(u).catch(fail));
+async function start(u){if(setting)return;if(!u)return login();const [mp,s0,iq]=await Promise.all([getDoc(doc(db,'map',u.uid)),getDoc(doc(db,'users',u.uid)),getDoc(doc(db,'config','inst')).catch(()=>null)]),uid=mp.exists()?mp.data().sid:u.uid,s=uid==u.uid?s0:await getDoc(doc(db,'users',uid));
 if(!s.exists()||s.data().active===false){await signOut(auth);return login('No access. Ask the admin.')}
-me={id:uid,...s.data()};if(me.role=='teacher'&&me.ca){me.role='admin';me.co=true}INST=iq&&iq.exists()?iq.data():{};if(me.role=='admin'&&!me.co)addLogin(me.name,auth.currentUser.email);me.role=='student'?student():(await chg(),S.tab=me.role=='teacher'?'tdb':'db',render())});
+me={id:uid,...s.data()};if(me.role=='teacher'&&me.ca){me.role='admin';me.co=true}INST=iq&&iq.exists()?iq.data():{};if(me.role=='admin'&&!me.co)addLogin(me.name,auth.currentUser.email);me.role=='student'?await student():(await chg(),S.tab=me.role=='teacher'?'tdb':'db',await render())}
 function login(m=''){CAP={a:2+Math.floor(Math.random()*8),b:1+Math.floor(Math.random()*8)};out(`<div class="card"><img src="logo.jpg" alt="" style="width:130px;display:block;margin:0 auto 8px;border-radius:50%"><h2 style="text-align:center">Rise Edge Academy</h2><p class="mut">${m}</p><input id="u" placeholder="Name or Email" autocapitalize="none"><input id="p" type="password" placeholder="Password"><p class="mut" style="margin:4px 0"><span>Solve</span>: ${CAP.a} + ${CAP.b} = ?</p><input id="cp" inputmode="numeric" placeholder="Answer"><button class="pri" id="lg">Login</button> <button id="su" hidden>First-time setup (admin only)</button> <button id="rg">New registration</button></div>`);
 $('#lg').onclick=async()=>{if(+($('#cp').value||'').trim()!==CAP.a+CAP.b)return login('Wrong captcha answer. Please try again.');const r=lk($('#u').value),p=$('#p').value;let c=[];try{const l=await getDoc(doc(db,'login',r));if(l.exists()){const d=l.data();c=d.es||(d.e?[d.e]:[])}}catch(x){}
 if(!c.length&&!r.includes('@'))c=[em(r)];for(const e of c){try{await signInWithEmailAndPassword(auth,e,p);return}catch(x){}}login('Wrong name/email or password. Forgot it? Ask the admin to reset.')};$('#su').onclick=setup;$('#rg').onclick=()=>regForm();getDoc(doc(db,'config','init')).then(d=>{if(!d.exists())$('#su').hidden=false}).catch(()=>{})}
@@ -28,7 +33,8 @@ const R=L.map(s=>{let p=0,a=0,g=0,t=0;A.forEach(d=>{if(d.A.includes(s.id))a++;el
 // same score = same rank (1,1,2,2,3)
 const rk=k=>{const v=[...new Set(R.filter(r=>r[k]!=null).map(r=>Math.round(r[k]*100)))].sort((x,y)=>y-x);return r=>r[k]==null?null:v.indexOf(Math.round(r[k]*100))+1},re=rk('ex'),ro=rk('ov');
 await Promise.all(R.map(r=>updateDoc(doc(db,'users',r.s.id),{stats:{ex:r.ex,er:re(r),ov:r.ov,or:ro(r),p:r.p,a:r.a,hw:r.hw,n:R.length}})))}
-async function render(){const tc=me.role=='teacher';TC=[];const bp=snap('batches'),up=tc?null:snap('users',where('role','==','student')),tp=tc?null:snap('users',where('role','==','teacher'));B=await bp;
+async function render(){try{await render0()}catch(e){fail(e)}}
+async function render0(){const tc=me.role=='teacher';TC=[];const bp=snap('batches'),up=tc?null:snap('users',where('role','==','student')),tp=tc?null:snap('users',where('role','==','teacher'));B=await bp;
 if(tc){B=B.filter(b=>(me.bids||[]).includes(b.id));U=(await Promise.all(B.map(b=>snap('users',where('bid','==',b.id))))).flat().filter(s=>s.role=='student')}else{U=await up;TC=await tp}
 S.bid=B.some(b=>b.id==S.bid)?S.bid:(B[0]||{}).id;U.forEach(s=>s.fee=fe(s));
 const bs=`<select onchange="S.bid=this.value;S.am=null;S.rf=S.rt=null;f.r()">${B.map(b=>`<option value="${b.id}" ${b.id==S.bid?'selected':''}>${esc(b.name)}</option>`).join('')}</select>`;
@@ -547,7 +553,7 @@ const spBars=()=>{try{return `<div class="card" data-pg="dash"><h3>Syllabus prog
 f.qb=async()=>{S.tab='bat';S.bo=null;await render();f.bt()};
 V.db=async()=>{const m=T().slice(0,7),A_=U.filter(x=>x.active!==false),[P,Q,AD,R,Lg]=await Promise.all([snap('pay',where('m','==',m)),snap('rq'),Promise.all(B.map(b=>getDoc(doc(db,'att',b.id+'_'+T())))),snap('reg').catch(()=>[]),snap('log').catch(()=>[])]);
 let pr=0;const ab=[];AD.forEach((d,i)=>{if(!d.exists())return;const x=d.data();A_.filter(z=>z.bid==B[i].id).forEach(z=>{if(x.A.includes(z.id))ab.push(z);else if(!x.E.includes(z.id))pr++})});
-const paid=z=>P.filter(p=>p.sid==z.id).reduce((a,p)=>a+p.amt,0),col=P.reduce((a,p)=>a+p.amt,0),pend=A_.reduce((a,z)=>a+Math.max(0,ef(z)-paid(z)),0),dueN=A_.filter(z=>paid(z)<ef(z)).length,pq=Q.filter(q=>q.st=='new'||q.st=='seen').length,tp=pr+ab.length,
+const paid=z=>P.filter(p=>p.sid==z.id).reduce((a,p)=>a+p.amt,0),col=P.reduce((a,p)=>a+p.amt,0),pend=A_.reduce((a,z)=>a+Math.max(0,fe(z)-paid(z)),0),dueN=A_.filter(z=>paid(z)<fe(z)).length,pq=Q.filter(q=>q.st=='new'||q.st=='seen').length,tp=pr+ab.length,
 cl={};B.forEach(b=>{const k=(b.cls?'Class '+b.cls:'No class')+(b.grp?' ('+b.grp+')':'');cl[k]=(cl[k]||0)+1});const cp=Object.entries(cl).map(([k,v],i)=>({k,v,c:PAL[i%PAL.length]})),
 ev=[...R.map(r=>({t:r.t,x:'New registration: '+r.name+' ('+r.role+')'})),...Lg.map(l=>({t:l.t,x:l.msg+' · '+l.by}))].sort((a,b)=>b.t-a.t).slice(0,6),
 av2=b=>{const a=U.filter(s=>s.bid==b.id&&s.stats&&s.stats.ex!=null).map(s=>s.stats.ex);return a.length?a.reduce((x,y)=>x+y)/a.length:0};
