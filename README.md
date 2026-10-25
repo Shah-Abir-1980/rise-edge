@@ -42,3 +42,9 @@ Admin > Registrations has a switch to close / open registration, and a list of r
 - **Old published exams:** open the dashboard box once and tap "Update student results" so students can see them too. New publishes update automatically.
 - **Exam total marks:** each subject must be 10 to 200. Decimals are fine (55, 55.5). Marks entered for students can also have decimals.
 - No change in firestore.rules for v6.
+
+## Added in v7
+- **Students tab:** only the student list. Search box with "Add student" beside it, class buttons below (All, Class 6 ... Class 12). Tap a class to see its students. Add batch is only in the Batches tab. "Start new month" and the month start date moved into each batch page (Batches > tap a batch).
+- **Fees (student):** every month shows Paid / Due. Tap a Due month > Paid > Cash or Online. Online needs a payment screenshot (Transaction ID is optional). The month stays "Waiting for approval" until the admin approves.
+- **Fees (admin):** Fees tab (and a card on the dashboard) shows Payment requests. Check the screenshot, change the amount if needed, Approve or Reject. Approve adds the payment, the month turns Paid and the receipt works. Reject can have a reason; the student can send it again.
+- **Important:** paste the new firestore.rules in Firebase > Firestore > Rules > Publish (new rules for `pr` and `pi`). Without it, students cannot send payment requests.

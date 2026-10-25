@@ -96,6 +96,13 @@ service cloud.firestore {
       allow update: if request.auth != null && regOpen() && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n is int && request.resource.data.n > resource.data.n && request.resource.data.n <= resource.data.n + 1000;
     }
     match /reg/{id} { allow create: if request.resource.data.st in ['pending', 'auto'] && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'nick', 'gphone', 'gem', 'st', 't', 'roll', 'bn']); }
+    match /pr/{id} {
+      allow read: if request.auth != null && resource.data.sid == sid();
+      allow create: if request.auth != null && request.resource.data.sid == sid() && request.resource.data.st == 'new' && request.resource.data.bid == myb() && request.resource.data.k in ['cash', 'online'] && request.resource.data.m is string && request.resource.data.m.matches('[0-9]{4}-[0-9]{2}') && request.resource.data.amt is number && request.resource.data.amt > 0 && request.resource.data.get('tx', '') is string && request.resource.data.get('tx', '').size() <= 60 && request.resource.data.keys().hasOnly(['sid', 'name', 'roll', 'bid', 'm', 'amt', 'k', 'tx', 'st', 't', 'hi']);
+    }
+    match /pi/{id} {
+      allow create: if request.auth != null && request.resource.data.sid == sid() && get(/databases/$(d)/documents/pr/$(id)).data.sid == sid() && request.resource.data.keys().hasOnly(['sid', 'img']) && request.resource.data.img is string && request.resource.data.img.size() < 700000;
+    }
     match /log/{id} { allow read: if cadm(); allow create: if cadm() && request.resource.data.uid == sid(); }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
