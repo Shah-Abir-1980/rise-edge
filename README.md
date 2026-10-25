@@ -35,3 +35,10 @@ Admin > Registrations has a switch to close / open registration, and a list of r
 - **Install as app:** Chrome shows an "Install app" button. iPhone: Safari > Share > Add to Home Screen.
 - **Registration without approval (v5):** see Self-registration above. New Firestore rules were added for it.
 - **Important:** after updating, paste the new firestore.rules in Firebase > Firestore > Rules > Publish (new rules for `rt` and `fp`).
+
+## Added in v6
+- **Monthly result sheet:** Result sheet tab > Monthly result > pick the month > Preview / Publish. Same poster as the yearly one (1st, 2nd, 3rd with photos, A+ / A count, pass rate). Students see it under Result sheet.
+- **Exam ranks box (dashboard):** Week (last 7 days) / Month / Year / Custom dates. Students see their rank in every published exam of that period and tap the rank to open the result. Admin and teachers see the published exams of the chosen batch, tap an exam for the rank list, tap a rank for that student's result.
+- **Old published exams:** open the dashboard box once and tap "Update student results" so students can see them too. New publishes update automatically.
+- **Exam total marks:** each subject must be 10 to 200. Decimals are fine (55, 55.5). Marks entered for students can also have decimals.
+- No change in firestore.rules for v6.
