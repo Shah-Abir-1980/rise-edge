@@ -18,7 +18,7 @@ service cloud.firestore {
       allow read: if request.auth != null && sid() == id;
       allow read: if tch(resource.data.bid);
       allow create: if request.auth != null && sid() == id && fresh() && request.resource.data.role == 'admin';
-      allow update: if request.auth != null && sid() == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChange', 'pic', 'phone', 'addr', 'gname', 'gphone', 'bg', 'name']);
+      allow update: if request.auth != null && sid() == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChange', 'pic', 'phone', 'addr', 'gname', 'gphone', 'bg', 'name', 'gem']);
       allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats']);
     }
     match /batches/{id} {
@@ -82,7 +82,7 @@ service cloud.firestore {
       allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ok', 'sel', 'rej']);
     }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
-    match /reg/{id} { allow create: if request.resource.data.st == 'pending' && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'nick', 'st', 't']); }
+    match /reg/{id} { allow create: if request.resource.data.st == 'pending' && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'nick', 'gphone', 'gem', 'st', 't']); }
     match /log/{id} { allow read: if cadm(); allow create: if cadm() && request.resource.data.uid == sid(); }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
