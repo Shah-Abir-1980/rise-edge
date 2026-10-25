@@ -419,7 +419,7 @@ Object.keys(LGm).forEach(k=>{const o=f[k];if(o)f[k]=async(...a)=>{const r=await 
 Object.assign(BN,{"Co-admin panel":"কো-অ্যাডমিন প্যানেল","Delete":"মুছুন","Delete this batch":"এই ব্যাচ মুছুন","Group":"গ্রুপ","All groups":"সব গ্রুপ","Appoint co-admin":"কো-অ্যাডমিন নিয়োগ দিন","What co-admins did":"কো-অ্যাডমিনরা কী করেছেন","Remove":"সরান","No co-admin yet.":"এখনো কোনো কো-অ্যাডমিন নেই।","Pick a group to see only that group's subjects and students.":"গ্রুপ বেছে নিলে শুধু সেই গ্রুপের বিষয় ও ছাত্র দেখাবে।"});
 
 // ---- self registration + admin approval + email ----
-function regForm(m=''){out(`<div class="card"><h2>Registration</h2><p class="mut">${m||'Fill the form. After the admin approves, your roll number and temporary password are sent to your email.'}</p>
+function regFormOld(m=''){out(`<div class="card"><h2>Registration</h2><p class="mut">${m||'Fill the form. After the admin approves, your roll number and temporary password are sent to your email.'}</p>
 <select id="rr" onchange="f.rr()"><option value="student">Student</option><option value="teacher">Teacher</option></select><input id="rn" placeholder="Full name"><input id="rnk" placeholder="Nickname (only admin can change it later)">
 <div id="rs1">${clsSel('rcl','')}<input id="rsc" placeholder="School / College"><input id="rgph" type="tel" placeholder="Guardian phone"><input id="rgem" type="email" placeholder="Guardian email (optional)"><select id="rgp"><option value="">Group (SSC/HSC only)</option><option>Science</option><option>Commerce</option><option>Arts</option></select></div>
 <div id="rt1" hidden><input id="rsb" placeholder="Subject you teach"><input id="rcc" placeholder="Classes you teach, e.g. 9-10"></div>
@@ -480,7 +480,7 @@ async function addLogin(key,ae,old){key=lk(key);if(!key||key.length>200||!ae)ret
 async function rmLogin(key,ae){key=lk(key);if(!key||!ae)return;try{const r=doc(db,'login',key),q=await getDoc(r);if(!q.exists())return;const es=(q.data().es||[q.data().e]).filter(x=>x&&x!=ae);es.length?await setDoc(r,{es,e:es[es.length-1]}):await deleteDoc(r)}catch(e){}}
 const regLogin=(name,email,ae,old)=>Promise.all([addLogin(name,ae,old),email?addLogin(email,ae,old):0]);
 async function nextRoll(st,yr){const k=(st?'S':'T')+yr,pre='REA'+(st?'S':'T')+'-'+yr+'-',cr=doc(db,'config','ctr');let mx=0,any=false;
-[...U,...TC].forEach(x=>{const v=String(x.roll||'');if(v.startsWith(pre)){any=true;mx=Math.max(mx,+v.slice(pre.length)||0)}});let n=mx;if(any){const cs=await getDoc(cr);n=Math.max(mx,(cs.exists()&&cs.data()[k])||0)}
+[...U,...TC].forEach(x=>{const v=String(x.roll||'');if(v.startsWith(pre)){any=true;mx=Math.max(mx,+v.slice(pre.length)||0)}});let n=mx;if(any){const cs=await getDoc(cr),c2=await getDoc(doc(db,'cn',k)).catch(()=>null);n=Math.max(mx,(cs.exists()&&cs.data()[k])||0,(c2&&c2.exists()&&c2.data().n)||0)}
 return{roll:pre+String(n+1).padStart(3,'0'),n:n+1,k,cr}}
 async function mkAcct(st,data,yr){const q=await nextRoll(st,yr||new Date().getFullYear()),pw=Math.random().toString(36).slice(2,8)+'A1',ae=q.roll.toLowerCase()+'.'+Math.random().toString(36).slice(2,6)+'@rise.local',a2=getAuth(initializeApp(cfg,'s'+Date.now()));
 const c=await createUserWithEmailAndPassword(a2,ae,pw);await signOut(a2);await setDoc(doc(db,'users',c.user.uid),{...data,role:st?'student':'teacher',roll:q.roll,active:true,mustChange:true});
@@ -655,3 +655,63 @@ let IP=null;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault()
 b.style.cssText='position:fixed;right:14px;bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:25';b.onclick=async()=>{b.remove();IP.prompt();await IP.userChoice.catch(()=>{});IP=null};document.body.appendChild(b)});
 window.addEventListener('appinstalled',()=>{const b=$('#ib');if(b)b.remove()});
 Object.assign(BN,{"Routine":"রুটিন","Class routine":"ক্লাস রুটিন","Weekly routine":"সাপ্তাহিক রুটিন","Add class":"ক্লাস যোগ করুন","Start":"শুরু","End":"শেষ","Teacher (optional)":"শিক্ষক (ঐচ্ছিক)","Room (optional)":"রুম (ঐচ্ছিক)","Subject":"বিষয়","No routine yet.":"এখনো কোনো রুটিন নেই।","No class today.":"আজ কোনো ক্লাস নেই।","Receipt":"রসিদ","Forgot password?":"পাসওয়ার্ড ভুলে গেছেন?","Forgot password":"পাসওয়ার্ড ভুলে গেছি","Send request":"অনুরোধ পাঠান","Dismiss":"বাতিল করুন","Absent alert to guardians":"অভিভাবককে অনুপস্থিতির বার্তা","No absent student on this day.":"এই দিনে কোনো অনুপস্থিত ছাত্র নেই।","Roll number":"রোল নম্বর","Full name":"পূর্ণ নাম","Install app":"অ্যাপ ইনস্টল করুন","No guardian phone.":"অভিভাবকের ফোন নেই।","Add Class":"ক্লাস যোগ করুন"});
+
+// ================= v5: self registration (no approval), review + edit, login details sent by email =================
+let RG={role:'student'},RGB=[];
+const EMRX=/^[^\s@\/]+@[^\s@\/]+\.[^\s@\/]+$/;
+const regOpenNow=async()=>{try{const q=await getDoc(doc(db,'config','reg'));return !(q.exists()&&q.data().open===false)}catch(e){return true}};
+async function regForm(m=''){
+if(!(await regOpenNow()))return out(`<div class="card"><h2>Registration</h2><p class="mut">Registration is closed right now. Please contact the academy.</p><button onclick="f.regBack()">Back</button></div>`);
+try{RGB=await snap('batches')}catch(e){RGB=[]}
+const v=RG,st=v.role!='teacher',sl=(a,b)=>String(a||'')==String(b)?' selected':'',iv=(id,ph,x,t)=>`<input id="${id}" ${t?'type="'+t+'" ':''}placeholder="${ph}" value="${esc(x)}">`;
+out(`<div class="card"><h2>Registration</h2><p class="mut">${m||'Fill the form and check it on the next screen. Your roll ID and password are sent to your email at once. No approval is needed.'}</p>
+<select id="rr" onchange="f.rr()"><option value="student"${sl(v.role,'student')}>Student</option><option value="teacher"${sl(v.role,'teacher')}>Teacher</option></select>
+${iv('rn','Full name',v.name)}${iv('rnk','Nickname (only admin can change it later)',v.nick)}
+<div id="rs1" ${st?'':'hidden'}><select id="rcl" onchange="f.rBat()"><option value="">Class</option>${[6,7,8,9,10,11,12].map(c=>`<option value="${c}"${sl(v.cls,c)}>Class ${c}</option>`).join('')}</select>
+<select id="rgp" onchange="f.rBat()"><option value="">Group (Class 9-12 only)</option>${['Science','Commerce','Arts'].map(g=>`<option${sl(v.grp,g)}>${g}</option>`).join('')}</select>
+<select id="rbt"><option value="">Choose your class first</option></select>
+${iv('rsc','School / College',v.school)}${iv('rgph','Guardian phone',v.gphone,'tel')}${iv('rgem','Guardian email (optional)',v.gem,'email')}</div>
+<div id="rt1" ${st?'hidden':''}>${iv('rsb','Subject you teach',v.subject)}${iv('rcc','Classes you teach, e.g. 9-10',v.role=='teacher'?v.cls:'')}</div>
+${iv('rph','Phone',v.phone,'tel')}${iv('rem','Email (your login details will be sent here)',v.email,'email')}${iv('rad','Present address',v.addr)}
+<button class="pri" onclick="f.regReview()">Review</button> <button onclick="f.regBack()">Back</button></div>`);f.rBat()}
+f.rBat=()=>{const c=($('#rcl')||{}).value||'',g=($('#rgp')||{}).value||'',e=$('#rbt');if(!e)return;const keep=e.value||RG.bid||'',
+L=c?RGB.filter(b=>(!b.cls||String(b.cls)==c)&&(+c<9||!g||!b.grp||b.grp==g)):[];
+e.innerHTML=!c?'<option value="">Choose your class first</option>':L.length?'<option value="">Choose your batch</option>'+L.map(b=>`<option value="${esc(b.id)}"${b.id==keep?' selected':''}>${esc(b.name)}</option>`).join(''):'<option value="">No batch is open for this class yet</option>'};
+f.regReview=()=>{const v=id=>(($('#'+id)||{}).value||'').trim(),role=v('rr'),d={role,name:v('rn'),nick:v('rnk'),phone:v('rph'),email:v('rem').toLowerCase(),addr:v('rad')};
+if(!d.name)return alert('Please enter your full name');if(d.phone.replace(/\D/g,'').length<6)return alert('Please enter a valid phone number');if(!EMRX.test(d.email))return alert('Please enter a valid email. Your roll ID and password are sent there.');
+if(role=='student'){Object.assign(d,{cls:v('rcl'),grp:v('rgp'),bid:v('rbt'),school:v('rsc'),gphone:v('rgph'),gem:v('rgem').toLowerCase()});if(!d.cls)return alert('Please choose your class');if(+d.cls<9)d.grp='';if(+d.cls>=9&&!d.grp)return alert('Please choose your group');if(!d.bid)return alert('Please choose your batch');if(d.gem&&!EMRX.test(d.gem))return alert('The guardian email is not valid')}
+else{Object.assign(d,{subject:v('rsb'),cls:v('rcc')});if(!d.subject)return alert('Please enter the subject you teach')}
+RG=d;regShow()};
+function regShow(m=''){CAP={a:2+Math.floor(Math.random()*8),b:1+Math.floor(Math.random()*8)};const d=RG,st=d.role=='student',b=RGB.find(x=>x.id==d.bid)||{},row=(l,x)=>x?`<div class="li"><span class="mut">${l}</span><b style="text-align:right">${esc(x)}</b></div>`:'';
+out(`<div class="card"><h2>Check your information</h2><p class="mut">${m||'Read everything once more. If something is wrong, tap Edit.'}</p>${row('Registering as',st?'Student':'Teacher')}${row('Full name',d.name)}${row('Nickname',d.nick)}${st?row('Class',d.cls)+row('Group',d.grp)+row('Batch',b.name)+row('School / College',d.school)+row('Guardian phone',d.gphone)+row('Guardian email',d.gem):row('Subject',d.subject)+row('Classes you teach',d.cls)}${row('Phone',d.phone)}${row('Address',d.addr)}
+<div class="card" style="margin:12px 0 0;border:2px solid var(--warn)"><b>Your email: ${esc(d.email)}</b><p class="mut" style="margin:4px 0 0">Your roll ID and password will be sent to this email at once. If it is wrong, you will not receive them.</p></div>
+<p class="mut" style="margin:12px 0 4px"><span>Solve</span>: ${CAP.a} + ${CAP.b} = ?</p><input id="cp" inputmode="numeric" placeholder="Answer"><button class="pri" id="rgc" onclick="f.regConfirm()">Confirm and register</button> <button onclick="f.regEdit()">Edit</button></div>`)}
+f.regEdit=()=>regForm();
+f.regConfirm=async()=>{if(+(($('#cp')||{}).value||'').trim()!==CAP.a+CAP.b)return regShow('Wrong answer. Please solve the sum and try again.');
+const bt=$('#rgc');bt.disabled=true;bt.textContent='Registering…';
+try{const r=await selfReg(RG);const d=RG;RG={role:'student'};regDone(r,d)}
+catch(e){console.error(e);bt.disabled=false;bt.textContent='Confirm and register';alert(/permission/i.test(e.message||'')?'Registration is not allowed right now. Please contact the academy.':(e.message||String(e)))}};
+function regDone(r,d){out(`<div class="card"><h2>Registration complete</h2>${r.err?`<p class="bad">We could not send the email (${esc(r.err)}).</p><p>Your account is ready. Your roll ID is <b>${esc(r.roll)}</b>. Please contact the academy to get your password.</p>`:`<p>✅ Your roll ID and password were sent to <b>${esc(d.email)}</b>.</p><p class="mut">Please check your inbox. If you cannot find it, look in Spam or Junk. At your first login you will choose a new password.</p><p class="mut">Your roll ID: <b>${esc(r.roll)}</b></p>`}<button class="pri" onclick="f.regBack()">Go to login</button></div>`)}
+async function selfReg(d){const st=d.role=='student',yr=new Date().getFullYear(),k=(st?'S':'T')+yr,pre='REA'+(st?'S':'T')+'-'+yr+'-';
+if(!(await regOpenNow()))throw new Error('Registration is closed right now.');
+const g=async(c,i)=>{try{const q=await getDoc(doc(db,c,i));return q.exists()?q.data():null}catch(e){return null}},c1=await g('config','ctr'),c2=await g('cn',k);let n=Math.max((c1&&c1[k])||0,(c2&&c2.n)||0);
+const pw=Math.random().toString(36).slice(2,8)+'A1',app2=initializeApp(cfg,'r'+Date.now()),a2=getAuth(app2),db2=getFirestore(app2),bn=((RGB.find(x=>x.id==d.bid))||{}).name||'';
+const base=st?{role:'student',name:d.name,nick:d.nick,gphone:d.gphone,gem:d.gem,bid:d.bid,school:d.school,grp:d.grp,phone:d.phone,addr:d.addr,email:d.email}:{role:'teacher',name:d.name,nick:d.nick,subject:d.subject,cls:d.cls,phone:d.phone,addr:d.addr,email:d.email,bids:[]};
+for(let i=0;i<40;i++){n++;const roll=pre+String(n).padStart(3,'0');
+if(await g('login',roll.toLowerCase()))continue;
+let c;try{c=await createUserWithEmailAndPassword(a2,em(roll),pw)}catch(e){if(e.code=='auth/email-already-in-use')continue;throw e}
+try{await setDoc(doc(db2,'users',c.user.uid),{...base,roll,active:true,mustChange:true})}catch(e){try{await c.user.delete()}catch(x){}throw e}
+try{await setDoc(doc(db2,'cn',k),{n})}catch(e){}
+try{await signOut(a2)}catch(e){}
+try{await addDoc(collection(db,'reg'),{role:d.role,name:d.name,phone:d.phone,email:d.email,roll,bn,subject:d.subject||'',st:'auto',t:Date.now()})}catch(e){}
+const err=await sendMail(d.email,d.name,roll,pw);
+mailCfg().then(m=>{if(m.ae)mail2(m.ae,'Admin','New '+d.role+' registered: '+d.name,d.name+' registered as '+roll+(bn?' ('+bn+')':'')+'. Phone: '+d.phone+'. No approval is needed.')}).catch(()=>{});
+return{roll,err}}
+throw new Error('Could not create a roll number. Please try again.')}
+// ---- admin: open/close self registration, see recent registrations ----
+const _reg1=V.reg;V.reg=async()=>{const h=await _reg1();let A=[];try{A=(await snap('reg')).filter(x=>x.st=='auto').sort((a,b)=>b.t-a.t).slice(0,20)}catch(e){}const op=await regOpenNow();
+return `<div class="card"><h3>Self-registration</h3><p class="mut">Students and teachers register themselves. Their roll ID and password go to their email at once. No approval is needed.</p><b class="${op?'ok':'bad'}">${op?'Open':'Closed'}</b> <button onclick="f.rgTog()">${op?'Close registration':'Open registration'}</button></div>`
++(A.length?`<div class="card"><h3>Recent registrations</h3>${A.map(r=>`<div class="li" style="display:block"><b>${esc(r.name)}</b> <span class="mut">${r.role=='teacher'?'Teacher':'Student'} · ${esc(r.roll||'')} · ${ago(r.t)}</span><p class="mut" style="margin:2px 0">${esc(r.phone||'')} · ${esc(r.email||'')}${r.bn?' · '+esc(r.bn):''}</p><button onclick="f.rgRp('${esc(r.roll||'')}')">Reset password</button></div>`).join('')}</div>`:'')+h};
+f.rgTog=async()=>{const op=await regOpenNow();if(!confirm(op?'Close registration? Nobody can register until you open it again.':'Open registration?'))return;await setDoc(doc(db,'config','reg'),{open:!op});render()};
+f.rgRp=async roll=>{const u=[...U,...TC].find(x=>String(x.roll)==String(roll));if(!u)return alert('This user was not found. They may have been deleted.');f.rp(u.id)};
+Object.assign(BN,{"Review":"পর্যালোচনা","Check your information":"আপনার তথ্য যাচাই করুন","Edit":"সম্পাদনা","Confirm and register":"নিশ্চিত করে রেজিস্ট্রেশন করুন","Registration complete":"রেজিস্ট্রেশন সম্পন্ন","Go to login":"লগইনে যান","Self-registration":"নিজে রেজিস্ট্রেশন","Recent registrations":"সাম্প্রতিক রেজিস্ট্রেশন","Close registration":"রেজিস্ট্রেশন বন্ধ করুন","Open registration":"রেজিস্ট্রেশন চালু করুন","Open":"চালু","Closed":"বন্ধ","Registering as":"রেজিস্ট্রেশন করছেন","Nickname":"ডাকনাম","Batch":"ব্যাচ","Class":"ক্লাস","Group":"গ্রুপ","Address":"ঠিকানা","Classes you teach":"যেসব ক্লাসে পড়ান","Guardian email":"অভিভাবকের ইমেইল","Registration is closed right now. Please contact the academy.":"এখন রেজিস্ট্রেশন বন্ধ আছে। অনুগ্রহ করে একাডেমির সাথে যোগাযোগ করুন।"});

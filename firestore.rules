@@ -7,6 +7,11 @@ service cloud.firestore {
     function myb() { return get(/databases/$(d)/documents/users/$(sid())).data.get('bid', ''); }
     function fresh() { return !exists(/databases/$(d)/documents/config/init); }
     function tch(b) { return request.auth != null && get(/databases/$(d)/documents/users/$(sid())).data.role == 'teacher' && b in get(/databases/$(d)/documents/users/$(sid())).data.bids; }
+    function regOpen() { return !exists(/databases/$(d)/documents/config/reg) || get(/databases/$(d)/documents/config/reg).data.get('open', true) != false; }
+    function ss(u, k) { return u.get(k, '') is string && u.get(k, '').size() < 300; }
+    function selfCommon(u) { return u.active == true && u.mustChange == true && u.name is string && u.name.size() > 0 && u.name.size() < 100 && ss(u, 'nick') && ss(u, 'phone') && ss(u, 'addr') && ss(u, 'email'); }
+    function selfStu(u) { return selfCommon(u) && u.role == 'student' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'bid', 'school', 'grp', 'phone', 'addr', 'email', 'gphone', 'gem', 'active', 'mustChange']) && u.roll is string && u.roll.matches('REAS-[0-9]{4}-[0-9]{3,6}') && u.bid is string && u.bid.size() > 0 && exists(/databases/$(d)/documents/batches/$(u.bid)) && u.get('grp', '') in ['', 'Science', 'Commerce', 'Arts'] && ss(u, 'school') && ss(u, 'gphone') && ss(u, 'gem'); }
+    function selfTch(u) { return selfCommon(u) && u.role == 'teacher' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'subject', 'phone', 'addr', 'email', 'bids', 'cls', 'active', 'mustChange']) && u.roll is string && u.roll.matches('REAT-[0-9]{4}-[0-9]{3,6}') && u.bids is list && u.bids.size() == 0 && ss(u, 'subject') && ss(u, 'cls'); }
     function tpub() { return get(/databases/$(d)/documents/users/$(sid())).data.get('pub', false) == true; }
     match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users' && c != 'log'); }
     match /config/{id} { allow read: if true; allow create: if request.auth != null && fresh(); }
@@ -18,11 +23,12 @@ service cloud.firestore {
       allow read: if request.auth != null && sid() == id;
       allow read: if tch(resource.data.bid);
       allow create: if request.auth != null && sid() == id && fresh() && request.resource.data.role == 'admin';
+      allow create: if request.auth != null && request.auth.uid == id && regOpen() && (selfStu(request.resource.data) || selfTch(request.resource.data)) && request.auth.token.email == request.resource.data.roll.lower() + '@rise.local';
       allow update: if request.auth != null && sid() == id && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustChange', 'pic', 'phone', 'addr', 'gname', 'gphone', 'bg', 'name', 'gem']);
       allow update: if tch(resource.data.bid) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stats']);
     }
     match /batches/{id} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow update: if tch(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['start']);
     }
     match /pay/{id} { allow read: if request.auth != null && resource.data.sid == sid(); }
@@ -84,7 +90,12 @@ service cloud.firestore {
     match /rt/{id} { allow read: if request.auth != null && (tch(id) || myb() == id); }
     match /fp/{id} { allow create: if request.resource.data.st == 'new' && request.resource.data.keys().hasOnly(['roll', 'name', 'phone', 'st', 't']) && request.resource.data.roll is string && request.resource.data.roll.size() < 30 && request.resource.data.name is string && request.resource.data.name.size() < 100 && request.resource.data.phone is string && request.resource.data.phone.size() < 30; }
     match /map/{id} { allow read: if request.auth != null && request.auth.uid == id; }
-    match /reg/{id} { allow create: if request.resource.data.st == 'pending' && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'nick', 'gphone', 'gem', 'st', 't']); }
+    match /cn/{id} {
+      allow read: if true;
+      allow create: if request.auth != null && regOpen() && id.matches('[ST][0-9]{4}') && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n is int && request.resource.data.n >= 1 && request.resource.data.n <= 100000;
+      allow update: if request.auth != null && regOpen() && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n is int && request.resource.data.n > resource.data.n && request.resource.data.n <= resource.data.n + 1000;
+    }
+    match /reg/{id} { allow create: if request.resource.data.st in ['pending', 'auto'] && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'nick', 'gphone', 'gem', 'st', 't', 'roll', 'bn']); }
     match /log/{id} { allow read: if cadm(); allow create: if cadm() && request.resource.data.uid == sid(); }
     match /login/{id} { allow read: if true; }
     match /rep/{id} {
