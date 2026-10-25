@@ -13,13 +13,13 @@ service cloud.firestore {
     function selfStu(u) { return selfCommon(u) && u.role == 'student' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'bid', 'school', 'grp', 'phone', 'addr', 'email', 'gphone', 'gem', 'active', 'mustChange']) && u.roll is string && u.roll.matches('REAS-[0-9]{4}-[0-9]{3,6}') && u.bid is string && u.bid.size() > 0 && exists(/databases/$(d)/documents/batches/$(u.bid)) && u.get('grp', '') in ['', 'Science', 'Commerce', 'Arts'] && ss(u, 'school') && ss(u, 'gphone') && ss(u, 'gem'); }
     function selfTch(u) { return selfCommon(u) && u.role == 'teacher' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'subject', 'phone', 'addr', 'email', 'bids', 'cls', 'active', 'mustChange']) && u.roll is string && u.roll.matches('REAT-[0-9]{4}-[0-9]{3,6}') && u.bids is list && u.bids.size() == 0 && ss(u, 'subject') && ss(u, 'cls'); }
     function tpub() { return get(/databases/$(d)/documents/users/$(sid())).data.get('pub', false) == true; }
-    match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users' && c != 'log'); }
+    match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users' && c != 'log' && c != 'batches' && !(c in ['pay', 'pr', 'pi', 'bf', 'sal'])); }
     match /config/{id} { allow read: if true; allow create: if request.auth != null && fresh(); }
     match /users/{id} {
       allow read: if cadm();
-      allow create: if cadm() && request.resource.data.role in ['student', 'teacher'] && request.resource.data.get('ca', false) == false;
+      allow create: if cadm() && request.resource.data.role in ['student', 'teacher'] && request.resource.data.get('ca', false) == false && request.resource.data.get('fo', 0) == 0;
       allow delete: if cadm() && resource.data.role in ['student', 'teacher'] && resource.data.get('ca', false) == false;
-      allow update: if cadm() && resource.data.role != 'admin' && request.resource.data.role == resource.data.role && request.resource.data.get('ca', false) == resource.data.get('ca', false);
+      allow update: if cadm() && resource.data.role != 'admin' && request.resource.data.role == resource.data.role && request.resource.data.get('ca', false) == resource.data.get('ca', false) && request.resource.data.get('fo', 0) == resource.data.get('fo', 0);
       allow read: if request.auth != null && sid() == id;
       allow read: if tch(resource.data.bid);
       allow create: if request.auth != null && sid() == id && fresh() && request.resource.data.role == 'admin';
@@ -30,6 +30,9 @@ service cloud.firestore {
     match /batches/{id} {
       allow read: if true;
       allow update: if tch(id) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['start']);
+      allow create: if cadm() && !('fee' in request.resource.data);
+      allow update: if cadm() && request.resource.data.get('fee', 0) == resource.data.get('fee', 0);
+      allow delete: if cadm();
     }
     match /pay/{id} { allow read: if request.auth != null && resource.data.sid == sid(); }
     match /att/{id} {
@@ -96,6 +99,8 @@ service cloud.firestore {
       allow update: if request.auth != null && regOpen() && request.resource.data.keys().hasOnly(['n']) && request.resource.data.n is int && request.resource.data.n > resource.data.n && request.resource.data.n <= resource.data.n + 1000;
     }
     match /reg/{id} { allow create: if request.resource.data.st in ['pending', 'auto'] && request.resource.data.role in ['student', 'teacher'] && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.name.size() < 100 && request.resource.data.keys().hasOnly(['role', 'name', 'cls', 'school', 'grp', 'phone', 'email', 'addr', 'subject', 'nick', 'gphone', 'gem', 'st', 't', 'roll', 'bn']); }
+    match /bf/{id} { allow read: if request.auth != null && resource.data.bid == myb(); }
+    match /sal/{id} { allow read: if request.auth != null && resource.data.tid == sid(); }
     match /pr/{id} {
       allow read: if request.auth != null && resource.data.sid == sid();
       allow create: if request.auth != null && request.resource.data.sid == sid() && request.resource.data.st == 'new' && request.resource.data.bid == myb() && request.resource.data.k in ['cash', 'online'] && request.resource.data.m is string && request.resource.data.m.matches('[0-9]{4}-[0-9]{2}') && request.resource.data.amt is number && request.resource.data.amt > 0 && request.resource.data.get('tx', '') is string && request.resource.data.get('tx', '').size() <= 60 && request.resource.data.keys().hasOnly(['sid', 'name', 'roll', 'bid', 'm', 'amt', 'k', 'tx', 'st', 't', 'hi']);
@@ -120,7 +125,7 @@ service cloud.firestore {
     }
     match /sd/{id} {
       allow read: if request.auth != null && (tch(id) || myb() == id);
-      allow write: if tch(id);
+      allow write: if tch(id) && request.resource.data.get('ov', {}) == (resource == null ? {} : resource.data.get('ov', {}));
     }
     match /ms/{id} {
       allow read: if request.auth != null && sid() == id;
