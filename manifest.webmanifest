@@ -1,4 +1,5 @@
 {
+ "id": "./",
  "name": "Rise Edge Academy",
  "short_name": "Rise Edge",
  "description": "Rise Edge Academy student, teacher and admin portal",
@@ -6,7 +7,11 @@
  "scope": "./",
  "display": "standalone",
  "orientation": "portrait",
- "background_color": "#0b1220",
+ "lang": "en",
+ "categories": [
+  "education"
+ ],
+ "background_color": "#000000",
  "theme_color": "#2563eb",
  "icons": [
   {

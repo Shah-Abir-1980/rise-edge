@@ -66,3 +66,19 @@ Admin > Registrations has a switch to close / open registration, and a list of r
 
 ## Whole package
 Upload ALL files of this folder to GitHub (Add file > Upload files, drag everything; do not copy-paste app.js, it is a big file). Then publish firestore.rules in Firebase > Firestore > Rules. Open `check.html` on your site if the app ever sticks on the logo: it shows what is wrong. If the app cannot start, the loading screen now shows a message with Reload and Clear app cache buttons.
+
+## v9.1
+- First-login password change is now a normal in-page form (before it used a pop-up `prompt()` in a loop; if the browser blocked or cancelled the pop-up the page froze on the logo).
+- While the app starts, a small grey line under the spinner shows what it is loading ("Loading users...", "Opening your page..."). If the app ever sticks, send a screenshot of that line.
+
+## v9.2
+- **No password pop-up at login any more.** New accounts log in with the password the admin gave them and go straight to the dashboard. A small note on the dashboard says "You are using a temporary password. Please change it in Profile." until they do.
+- **Profile > Change password:** Current password, New password (min 6), Save password. The result is written on the page (no pop-up). After saving, the new password is used for every login. A wrong current password is refused.
+- The admin's "Reset password" still works as before (gives a new temporary password).
+
+## v10 - install as an app
+- The 4 icon files are now included (icon-192.png, icon-512.png, icon-maskable-512.png, icon-180.png for iPhone). They are made from logo.jpg. Chrome needs them before it shows **Install app** in the 3-dot menu.
+- Upload ALL files (the icons too). After upload open the site once, wait a few seconds, then: Chrome menu (3 dots) > **Install app**. The app opens full screen with the Rise Edge logo.
+- Also: a floating "Install app" button appears by itself, and Profile has an "Install app" card (iPhone: Share > Add to Home Screen).
+- If you installed an older version before, remove it first, then install again to get the new icon.
+- `check.html` now also shows if the install files and service worker are ready.

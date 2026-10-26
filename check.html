@@ -21,5 +21,10 @@ try{const A=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-ap
  const db=F.getFirestore(A.initializeApp(cfg,'chk')),d=await Promise.race([F.getDoc(F.doc(db,'config','inst')),new Promise((_,j)=>setTimeout(()=>j(new Error('no answer in 10 seconds')),10000))]);
  row(true,'Database answers (institute settings '+(d.exists()?'found':'not set')+')')}
 catch(e){row(false,'Firebase / database: '+e.message)}
+try{const m=await (await fetch('manifest.webmanifest?'+Date.now(),{cache:'no-store'})).json();row(!!(m.name&&m.start_url&&m.display),'install: manifest ok ('+m.name+')');
+ for(const ic of (m.icons||[])){const r=await fetch(ic.src+'?'+Date.now(),{cache:'no-store'});let d='';if(r.ok){const b=await createImageBitmap(await r.blob());d=b.width+'x'+b.height}row(r.ok&&d===ic.sizes,'install: '+ic.src+' '+(r.ok?d:'not found (HTTP '+r.status+')'))}}
+catch(e){row(false,'install: manifest problem: '+e.message)}
+try{const g=await navigator.serviceWorker.getRegistrations();row(g.length>0,'install: service worker '+(g.length?'registered':'not registered yet (open the app once, then check again)'))}catch(e){row(false,'install: service worker: '+e.message)}
+row(location.protocol==='https:','install: '+location.protocol+' (needs https)');
 row(true,'Done. Send a screenshot of this page.');
 </script></body></html>
