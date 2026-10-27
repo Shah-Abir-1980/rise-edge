@@ -69,13 +69,11 @@ service cloud.firestore {
       allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
       allow read: if tch(resource.data.bid);
       allow create: if tch(request.resource.data.bid);
-      allow delete: if tch(resource.data.bid);
     }
     match /fd/{id} {
       allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');
       allow read: if tch(resource.data.bid);
       allow create: if tch(request.resource.data.bid);
-      allow delete: if tch(resource.data.bid);
     }
     match /sy/{id} {
       allow read: if request.auth != null && resource.data.bid == get(/databases/$(d)/documents/users/$(sid())).data.get('bid', '');

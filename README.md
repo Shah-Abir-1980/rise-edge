@@ -82,3 +82,14 @@ Upload ALL files of this folder to GitHub (Add file > Upload files, drag everyth
 - Also: a floating "Install app" button appears by itself, and Profile has an "Install app" card (iPhone: Share > Add to Home Screen).
 - If you installed an older version before, remove it first, then install again to get the new icon.
 - `check.html` now also shows if the install files and service worker are ready.
+
+## v11 - stay logged in + Share from phone
+- **Stay logged in:** the login is now saved in the phone's local storage first (IndexedDB as backup), and the app asks the browser not to clear it. You only log in again after pressing Logout or if you clear the browser data.
+- **Share to Rise Edge (Android, installed app):** in My Files / Gallery select a file > Share > **Rise Edge**. Then choose **Homework / Suggestion / Exam Solution**, tick one or more batches, press **Send**.
+  - Students and teachers get it in their own panel: Homework (Open file button), Suggestions, Exam solutions. The batch also gets an alert.
+  - No file size limit in the app (the file is stored in small parts). The real limit is the free Firebase space (1 GB in total). A file sent to 3 batches uses 3 copies.
+  - After uploading these files, **uninstall the app and install it again** (Chrome menu > Install app) so Android learns about the Share option.
+  - iPhone does not support this. Use the Homework / Suggestions / Exam solutions tabs there.
+- **Delete:** only the admin sees the Delete button (Homework, Suggestions, Exam solutions). Teachers and students cannot delete.
+- Publish the new `firestore.rules` (Firebase > Firestore > Rules > Publish) so that teachers are also blocked from deleting files on the server side.
+- The Suggestions / Exam solutions Upload box has no 700 KB limit any more either.
