@@ -1,6 +1,6 @@
 // Rise Edge Academy - keeps the app shell so it can be installed and opens fast.
 // Network first: new versions of app.js / index.html are always picked up when online.
-const C='rise-v4',SC='rise-share',A=['./','index.html','app.js','config.js','logo.jpg','manifest.webmanifest','icon-192.png','icon-512.png'];
+const C='rise-design-v15',SC='rise-share',A=['./','index.html','app.js','design.css','design.js','config.js','logo.jpg','manifest.webmanifest','icon-192.png','icon-512.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(A)).then(()=>self.skipWaiting()).catch(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!=C&&x!=SC).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{const r=e.request,u=new URL(r.url);
