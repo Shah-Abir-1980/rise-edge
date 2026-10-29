@@ -11,7 +11,7 @@ service cloud.firestore {
     function regOpen() { return !exists(/databases/$(d)/documents/config/reg) || get(/databases/$(d)/documents/config/reg).data.get('open', true) != false; }
     function ss(u, k) { return u.get(k, '') is string && u.get(k, '').size() < 300; }
     function selfCommon(u) { return u.active == true && u.mustChange == true && u.name is string && u.name.size() > 0 && u.name.size() < 100 && ss(u, 'nick') && ss(u, 'phone') && ss(u, 'addr') && ss(u, 'email'); }
-    function selfStu(u) { return selfCommon(u) && u.role == 'student' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'bid', 'cls', 'school', 'grp', 'phone', 'addr', 'email', 'gphone', 'gem', 'active', 'mustChange', 'ap']) && u.ap == false && u.roll is string && u.roll.matches('REAS-[0-9]{4}-[0-9]{3,6}') && u.bid == '' && u.get('cls', '') in ['', '4', '5', '6', '7', '8', '9', '10', '11', '12'] && u.get('grp', '') in ['', 'Science', 'Commerce', 'Arts'] && ss(u, 'school') && ss(u, 'gphone') && ss(u, 'gem'); }
+    function selfStu(u) { return selfCommon(u) && u.role == 'student' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'bid', 'cls', 'school', 'grp', 'phone', 'addr', 'email', 'gphone', 'gem', 'active', 'mustChange', 'ap']) && u.ap == false && u.roll is string && u.roll.matches('REAS-[0-9]{4}-[0-9]{3,6}') && (u.bid == '' || (exists(/databases/$(d)/documents/batches/$(u.bid)) && get(/databases/$(d)/documents/batches/$(u.bid)).data.get('cls', '') == u.get('cls', '') && get(/databases/$(d)/documents/batches/$(u.bid)).data.get('grp', '') == u.get('grp', ''))) && u.get('cls', '') in ['', '4', '5', '6', '7', '8', '9', '10', '11', '12'] && u.get('grp', '') in ['', 'Science', 'Commerce', 'Arts'] && ss(u, 'school') && ss(u, 'gphone') && ss(u, 'gem'); }
     function selfTch(u) { return selfCommon(u) && u.role == 'teacher' && u.keys().hasOnly(['role', 'name', 'nick', 'roll', 'subject', 'phone', 'addr', 'email', 'bids', 'cls', 'active', 'mustChange', 'ap']) && u.ap == false && u.roll is string && u.roll.matches('REAT-[0-9]{4}-[0-9]{3,6}') && u.bids is list && u.bids.size() == 0 && ss(u, 'subject') && ss(u, 'cls'); }
     function tpub() { return get(/databases/$(d)/documents/users/$(sid())).data.get('pub', false) == true; }
     match /{c}/{id} { allow read, write: if adm() || (cadm() && c != 'users' && c != 'log' && c != 'batches' && !(c in ['pay', 'pr', 'pi', 'bf', 'sal'])); }
@@ -124,7 +124,7 @@ service cloud.firestore {
     }
     match /sd/{id} {
       allow read: if request.auth != null && (tch(id) || myb() == id);
-      allow write: if tch(id) && request.resource.data.get('ov', {}) == (resource == null ? {} : resource.data.get('ov', {}));
+      allow write: if tch(id) && request.resource.data.get('ov', {}) == (resource == null ? {} : resource.data.get('ov', {})) && request.resource.data.get('tl', {}) == (resource == null ? {} : resource.data.get('tl', {}));
     }
     match /ms/{id} {
       allow read: if request.auth != null && sid() == id && apd();

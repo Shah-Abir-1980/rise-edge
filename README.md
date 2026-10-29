@@ -112,3 +112,9 @@ Upload ALL files of this folder to GitHub (Add file > Upload files, drag everyth
 - The registration form has **no batch choice** any more. Students only choose their class, register and log in.
 - The admin or a co-admin puts the student in a batch: **Batches > tap a batch > Add student to this batch**. Until then the student shows under "No batch" (their chosen class is still shown in the Students tab).
 - **firestore.rules: publish again** (Firebase > Firestore > Rules > Publish). Without the new rules, new registrations are refused.
+
+## v16 - ready-made batches, auto batch, syllabus topics
+- **Ready-made batches:** when the admin opens the app, batches are created by themselves for Class 4, 5, 6, 7, 8 and for Class 9, 10, 11, 12 × Science / Commerce / Arts (only the ones missing; an existing batch with the same class and group is used instead).
+- **Auto batch:** a student who registers goes straight into the batch of his class (and group for Class 9-12). Old students without a batch are moved in automatically too. The admin can still move a student by hand (Batches > tap a batch > Add student).
+- **Syllabus topics:** admin and co-admins see 🗑️ (delete) and ✏️ (rename) beside each topic, and an "Add topic" box under the list. Ticked progress and student confidence move with the topics.
+- **Publish the new firestore.rules** (Firebase > Firestore > Rules > Publish), otherwise registration into a batch is refused.

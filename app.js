@@ -710,7 +710,7 @@ async function selfReg(d){const st=d.role=='student',yr=new Date().getFullYear()
 if(!(await regOpenNow()))throw new Error('Registration is closed right now.');
 const g=async(c,i)=>{try{const q=await getDoc(doc(db,c,i));return q.exists()?q.data():null}catch(e){return null}},c1=await g('config','ctr'),c2=await g('cn',k);let n=Math.max((c1&&c1[k])||0,(c2&&c2.n)||0);
 const pw=d.pw,app2=initializeApp(cfg,'r'+Date.now()),a2=getAuth(app2),db2=getFirestore(app2),bn=((RGB.find(x=>x.id==d.bid))||{}).name||'';
-const base=st?{role:'student',name:d.name,nick:d.nick,gphone:d.gphone,gem:d.gem,bid:'',cls:d.cls,school:d.school,grp:d.grp,phone:d.phone,addr:d.addr,email:d.email}:{role:'teacher',name:d.name,nick:d.nick,subject:d.subject,cls:d.cls,phone:d.phone,addr:d.addr,email:d.email,bids:[]};
+const base=st?{role:'student',name:d.name,nick:d.nick,gphone:d.gphone,gem:d.gem,bid:(await v15Bid(d.cls,d.grp)),cls:d.cls,school:d.school,grp:d.grp,phone:d.phone,addr:d.addr,email:d.email}:{role:'teacher',name:d.name,nick:d.nick,subject:d.subject,cls:d.cls,phone:d.phone,addr:d.addr,email:d.email,bids:[]};
 for(let i=0;i<40;i++){n++;const roll=pre+String(n).padStart(3,'0');
 if(await g('login',roll.toLowerCase()))continue;
 let c;try{c=await createUserWithEmailAndPassword(a2,em(roll),pw)}catch(e){if(e.code=='auth/email-already-in-use')continue;throw e}
@@ -941,3 +941,39 @@ f.apNo=async id=>{const u=PEND.find(x=>x.id==id);if(!u||!confirm('Reject and del
 const _regP=V.reg;V.reg=async()=>{const h=await _regP();return PEND.length?`<div class="card" style="border:2px solid var(--warn)"><h3>Waiting for approval <span class="mut">(${PEND.length})</span></h3><p class="mut">These people registered themselves. They can see only the dashboard until you approve them.</p>${PEND.map(apRow).join('')}</div>`+h:h};
 const _dbP=V.db;V.db=async()=>{const h=await _dbP();return PEND.length?`<div class="card" style="cursor:pointer;border:2px solid var(--warn)" onclick="S.tab='reg';f.r()"><b>🆕 <span>${PEND.length}</span> account(s) waiting for approval</b> <span class="mut">Tap to open</span></div>`+h:h};
 
+
+
+// ================= v15: ready-made class / group batches, auto batch on registration, admin + co-admin add / delete syllabus topics =================
+Object.assign(BN,{"Delete topic":"টপিক মুছুন","Add topic":"টপিক যোগ করুন","New topic name":"নতুন টপিকের নাম","Delete this topic?":"এই টপিকটি মুছবেন?","Ready-made batch (students of this class/group join automatically)":"তৈরি করা ব্যাচ (এই ক্লাস/গ্রুপের ছাত্ররা নিজে থেকেই যুক্ত হবে)"});
+const V15G=['Science','Commerce','Arts'];
+const DEFB=[4,5,6,7,8].map(c=>({id:'auto-c'+c,name:'Class '+c,cls:''+c,grp:''})).concat([9,10,11,12].flatMap(c=>V15G.map(g=>({id:'auto-c'+c+'-'+g.toLowerCase(),name:'Class '+c+' · '+g,cls:''+c,grp:g}))));
+const v15Find=(L,cls,grp)=>{cls=String(cls||'');if(!cls)return null;const g=+cls>=9?(grp||''):'';if(+cls>=9&&!g)return null;const M=(L||[]).filter(b=>String(b.cls||'')==cls&&(b.grp||'')==g);return M.find(b=>b.auto)||M[0]||null};
+async function v15Bid(cls,grp){try{const L=await snap('batches');const b=v15Find(L,cls,grp);return b?b.id:''}catch(e){return ''}}
+async function v15Ensure(){const L=await snap('batches');
+for(const d of DEFB){if(v15Find(L,d.cls,d.grp))continue;const{id,...x}=d,v={...x,start:T(),auto:true};try{await setDoc(doc(db,'batches',id),v);L.push({id,...v})}catch(e){console.warn(e)}}
+let S2=[];try{S2=await snap('users',where('role','==','student'))}catch(e){}
+for(const s of S2){if(s.active===false||(s.bid&&L.some(b=>b.id==s.bid)))continue;const b=v15Find(L,s.cls,s.grp);if(b)try{await updateDoc(doc(db,'users',s.id),{bid:b.id})}catch(e){}}}
+let V15D=0;const _r0v15=render0;render0=async(...a)=>{if(!V15D&&me&&me.role=='admin'){V15D=1;try{await v15Ensure()}catch(e){console.warn(e)}}return _r0v15(...a)};
+// approval: a student without a batch is put into the batch of his class / group
+const _apv15=f.apOk;f.apOk=async id=>{try{const q=await getDoc(doc(db,'users',id)),u=q.exists()?q.data():null;if(u&&u.role=='student'&&!u.bid){const b=v15Find(await snap('batches'),u.cls,u.grp);if(b)await updateDoc(doc(db,'users',id),{bid:b.id})}}catch(e){}return _apv15(id)};
+// batch page: show that it is a ready-made batch
+const _batv15=V.bat;V.bat=async(...a)=>{let h=await _batv15(...a);const b=B.find(x=>x.id==S.bid);if(b&&b.auto&&typeof h=='string')h=h.replace('<p class="mut">Class and group of this batch','<p class="ok" style="font-weight:600">Ready-made batch (students of this class/group join automatically)</p><p class="mut">Class and group of this batch');return h};
+// ---- syllabus topics: admin and co-admin can add, delete and rename. Built-in subjects are copied into sd/<batch>.tl[subject] on first change ----
+const _ZLv15=ZL;ZL=(cls,grp,sd)=>{const tl=(sd&&sd.tl)||{};return _ZLv15(cls,grp,sd).map(x=>Array.isArray(tl[x.s])?{...x,t:tl[x.s]}:x)};
+const sCan=()=>me.role=='admin';
+const sCur=()=>{const b=B.find(x=>x.id==S.bid);if(!b)return null;const g=b.grp||S.ysg||'';return ZL(b.cls,g,S.SD).find(x=>x.s==S.ysj)||null};
+async function sSet(subj,list,map){const k=S.SD.cx.findIndex(c=>c.s==subj);
+if(map){const fx=a=>[...new Set((a||[]).map(map).filter(i=>i!=null&&i>=0))];if(S.SD.done[subj])S.SD.done[subj]=fx(S.SD.done[subj]);
+try{const M=await snap('ms',where('bid','==',S.bid));for(const m of M){const c=m.c||{};if(c[subj]){c[subj]=fx(c[subj]);await updateDoc(doc(db,'ms',m.id),{c}).catch(()=>{})}}}catch(e){}}
+if(k>=0){S.SD.cx[k].t=list;await setDoc(doc(db,'sd',S.bid),{bid:S.bid,done:S.SD.done,cx:S.SD.cx},{merge:true})}
+else{S.SD.tl=S.SD.tl||{};S.SD.tl[subj]=list;const ov={...(S.SD.ov||{})};delete ov[subj];S.SD.ov=ov;await setDoc(doc(db,'sd',S.bid),{bid:S.bid,done:S.SD.done,tl:S.SD.tl,ov},{merge:true});
+await updateDoc(doc(db,'sd',S.bid),{ov}).catch(()=>{})}}
+f.tDel=async i=>{if(!sCan())return;const y=sCur();if(!y||!confirm('Delete this topic?\n'+y.t[i]))return;const L=y.t.filter((_,j)=>j!=i);
+try{await sSet(y.s,L,j=>j==i?null:j>i?j-1:j);logCo('Deleted a syllabus topic');render()}catch(e){alert(e.message)}};
+f.tAdd=async()=>{if(!sCan())return;const y=sCur(),n=(($('#v15t')||{}).value||'').trim();if(!y)return;if(!n)return alert('New topic name');
+try{await sSet(y.s,[...y.t,n]);logCo('Added a syllabus topic');render()}catch(e){alert(e.message)}};
+f.tEdit=async i=>{if(!sCan())return;const y=sCur();if(!y)return;const nv=prompt('Edit topic name',y.t[i]);if(nv===null)return;const n=nv.trim();if(!n)return alert('Topic name cannot be empty');
+const L=[...y.t];L[i]=n;try{await sSet(y.s,L);logCo('Edited a syllabus topic');render()}catch(e){alert(e.message)}};
+const _syv15=V.sy;V.sy=async(...a)=>{let h=await _syv15(...a);if(typeof h!='string'||!sCan()||!S.SD)return h;
+h=h.replace(/<input type="checkbox" class="zt" value="(\d+)"/g,(m,i)=>`<button class="pen" title="Delete topic" onclick="event.preventDefault();event.stopPropagation();f.tDel(${i})">🗑️</button>`+m);
+h=h.replace('<button class="pri" onclick="f.zSave()">Save</button>','<button class="pri" onclick="f.zSave()">Save</button><div style="display:flex;gap:8px;margin-top:10px"><input id="v15t" placeholder="New topic name" style="flex:1"><button onclick="f.tAdd()">Add topic</button></div>');return h};
