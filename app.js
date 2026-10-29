@@ -674,7 +674,7 @@ async function regForm(m=''){
 if(!(await regOpenNow()))return out(`<div class="card"><h2>Registration</h2><p class="mut">Registration is closed right now. Please contact the academy.</p><button onclick="f.regBack()">Back</button></div>`);
 try{RGB=await snap('batches')}catch(e){RGB=[]}
 const v=RG,st=v.role!='teacher',sl=(a,b)=>String(a||'')==String(b)?' selected':'',iv=(id,ph,x,t)=>`<input id="${id}" ${t?'type="'+t+'" ':''}placeholder="${ph}" value="${esc(x)}">`;
-out(`<div class="card"><h2>Registration</h2><p class="mut">${m||'Fill the form and check it on the next screen. Your roll ID and password are sent to your email at once. No approval is needed.'}</p>
+out(`<div class="card"><h2>Registration</h2><p class="mut">${m||'Fill the form and check it on the next screen. Choose your own password. After registering you are logged in at once. No approval is needed.'}</p>
 <select id="rr" onchange="f.rr()"><option value="student"${sl(v.role,'student')}>Student</option><option value="teacher"${sl(v.role,'teacher')}>Teacher</option></select>
 ${iv('rn','Full name',v.name)}${iv('rnk','Nickname (only admin can change it later)',v.nick)}
 <div id="rs1" ${st?'':'hidden'}><select id="rcl" onchange="f.rBat()"><option value="">Class</option>${[6,7,8,9,10,11,12].map(c=>`<option value="${c}"${sl(v.cls,c)}>Class ${c}</option>`).join('')}</select>
@@ -682,39 +682,41 @@ ${iv('rn','Full name',v.name)}${iv('rnk','Nickname (only admin can change it lat
 <select id="rbt"><option value="">Choose your class first</option></select>
 ${iv('rsc','School / College',v.school)}${iv('rgph','Guardian phone',v.gphone,'tel')}${iv('rgem','Guardian email (optional)',v.gem,'email')}</div>
 <div id="rt1" ${st?'hidden':''}>${iv('rsb','Subject you teach',v.subject)}${iv('rcc','Classes you teach, e.g. 9-10',v.role=='teacher'?v.cls:'')}</div>
-${iv('rph','Phone',v.phone,'tel')}${iv('rem','Email (your login details will be sent here)',v.email,'email')}${iv('rad','Present address',v.addr)}
+${iv('rph','Phone',v.phone,'tel')}${iv('rem','Email',v.email,'email')}${iv('rad','Present address',v.addr)}<input id="rpw" type="password" placeholder="Choose a password (min 6 characters)" value="${esc(v.pw||'')}"><input id="rpw2" type="password" placeholder="Type the password again" value="${esc(v.pw||'')}">
 <button class="pri" onclick="f.regReview()">Review</button> <button onclick="f.regBack()">Back</button></div>`);f.rBat()}
 f.rBat=()=>{const c=($('#rcl')||{}).value||'',g=($('#rgp')||{}).value||'',e=$('#rbt');if(!e)return;const keep=e.value||RG.bid||'',
 L=c?RGB.filter(b=>(!b.cls||String(b.cls)==c)&&(+c<9||!g||!b.grp||b.grp==g)):[];
 e.innerHTML=!c?'<option value="">Choose your class first</option>':L.length?'<option value="">Choose your batch</option>'+L.map(b=>`<option value="${esc(b.id)}"${b.id==keep?' selected':''}>${esc(b.name)}</option>`).join(''):'<option value="">No batch is open for this class yet</option>'};
 f.regReview=()=>{const v=id=>(($('#'+id)||{}).value||'').trim(),role=v('rr'),d={role,name:v('rn'),nick:v('rnk'),phone:v('rph'),email:v('rem').toLowerCase(),addr:v('rad')};
-if(!d.name)return alert('Please enter your full name');if(d.phone.replace(/\D/g,'').length<6)return alert('Please enter a valid phone number');if(!EMRX.test(d.email))return alert('Please enter a valid email. Your roll ID and password are sent there.');
+if(!d.name)return alert('Please enter your full name');if(d.phone.replace(/\D/g,'').length<6)return alert('Please enter a valid phone number');if(!EMRX.test(d.email))return alert('Please enter a valid email.');d.pw=v('rpw');if(d.pw.length<6)return alert('Password must be at least 6 characters');if(d.pw!==v('rpw2'))return alert('The two passwords do not match');
 if(role=='student'){Object.assign(d,{cls:v('rcl'),grp:v('rgp'),bid:v('rbt'),school:v('rsc'),gphone:v('rgph'),gem:v('rgem').toLowerCase()});if(!d.cls)return alert('Please choose your class');if(+d.cls<9)d.grp='';if(+d.cls>=9&&!d.grp)return alert('Please choose your group');if(!d.bid)return alert('Please choose your batch');if(d.gem&&!EMRX.test(d.gem))return alert('The guardian email is not valid')}
 else{Object.assign(d,{subject:v('rsb'),cls:v('rcc')});if(!d.subject)return alert('Please enter the subject you teach')}
 RG=d;regShow()};
 function regShow(m=''){CAP={a:2+Math.floor(Math.random()*8),b:1+Math.floor(Math.random()*8)};const d=RG,st=d.role=='student',b=RGB.find(x=>x.id==d.bid)||{},row=(l,x)=>x?`<div class="li"><span class="mut">${l}</span><b style="text-align:right">${esc(x)}</b></div>`:'';
 out(`<div class="card"><h2>Check your information</h2><p class="mut">${m||'Read everything once more. If something is wrong, tap Edit.'}</p>${row('Registering as',st?'Student':'Teacher')}${row('Full name',d.name)}${row('Nickname',d.nick)}${st?row('Class',d.cls)+row('Group',d.grp)+row('Batch',b.name)+row('School / College',d.school)+row('Guardian phone',d.gphone)+row('Guardian email',d.gem):row('Subject',d.subject)+row('Classes you teach',d.cls)}${row('Phone',d.phone)}${row('Address',d.addr)}
-<div class="card" style="margin:12px 0 0;border:2px solid var(--warn)"><b>Your email: ${esc(d.email)}</b><p class="mut" style="margin:4px 0 0">Your roll ID and password will be sent to this email at once. If it is wrong, you will not receive them.</p></div>
+<div class="card" style="margin:12px 0 0;border:2px solid var(--warn)"><b>Your email: ${esc(d.email)}</b><p class="mut" style="margin:4px 0 0">You will log in with your roll ID and the password you chose.</p></div>
 <p class="mut" style="margin:12px 0 4px"><span>Solve</span>: ${CAP.a} + ${CAP.b} = ?</p><input id="cp" inputmode="numeric" placeholder="Answer"><button class="pri" id="rgc" onclick="f.regConfirm()">Confirm and register</button> <button onclick="f.regEdit()">Edit</button></div>`)}
 f.regEdit=()=>regForm();
 f.regConfirm=async()=>{if(+(($('#cp')||{}).value||'').trim()!==CAP.a+CAP.b)return regShow('Wrong answer. Please solve the sum and try again.');
 const bt=$('#rgc');bt.disabled=true;bt.textContent='Registering…';
 try{const r=await selfReg(RG);const d=RG;RG={role:'student'};regDone(r,d)}
 catch(e){console.error(e);bt.disabled=false;bt.textContent='Confirm and register';alert(/permission/i.test(e.message||'')?'Registration is not allowed right now. Please contact the academy.':(e.message||String(e)))}};
-function regDone(r,d){out(`<div class="card"><h2>Registration complete</h2>${r.err?`<p class="bad">We could not send the email (${esc(r.err)}).</p><p>Your account is ready. Your roll ID is <b>${esc(r.roll)}</b>. Please contact the academy to get your password.</p>`:`<p>✅ Your roll ID and password were sent to <b>${esc(d.email)}</b>.</p><p class="mut">Please check your inbox. If you cannot find it, look in Spam or Junk. At your first login you will choose a new password.</p><p class="mut">Your roll ID: <b>${esc(r.roll)}</b></p>`}<button class="pri" onclick="f.regBack()">Go to login</button></div>`)}
+function regDoneOld(r,d){out(`<div class="card"><h2>Registration complete</h2>${r.err?`<p class="bad">We could not send the email (${esc(r.err)}).</p><p>Your account is ready. Your roll ID is <b>${esc(r.roll)}</b>. Please contact the academy to get your password.</p>`:`<p>✅ Your roll ID and password were sent to <b>${esc(d.email)}</b>.</p><p class="mut">Please check your inbox. If you cannot find it, look in Spam or Junk. At your first login you will choose a new password.</p><p class="mut">Your roll ID: <b>${esc(r.roll)}</b></p>`}<button class="pri" onclick="f.regBack()">Go to login</button></div>`)}
+function regDone(r,d){out(`<div class="card"><h2>Registration complete</h2><p>✅ Your account is ready.</p><p>Your roll ID: <b style="font-size:1.2em">${esc(r.roll)}</b></p><p class="mut">Write it down. Next time, log in with this roll ID and your password.</p><button class="pri" id="rgl">Go to my dashboard</button></div>`);
+const go=async()=>{const b=$('#rgl');b.disabled=true;b.textContent='Logging in…';try{await signInWithEmailAndPassword(auth,em(r.roll),d.pw)}catch(e){b.disabled=false;b.textContent='Go to my dashboard';login('Please log in with roll '+r.roll+' and your password.')}};$('#rgl').onclick=go;go()}
 async function selfReg(d){const st=d.role=='student',yr=new Date().getFullYear(),k=(st?'S':'T')+yr,pre='REA'+(st?'S':'T')+'-'+yr+'-';
 if(!(await regOpenNow()))throw new Error('Registration is closed right now.');
 const g=async(c,i)=>{try{const q=await getDoc(doc(db,c,i));return q.exists()?q.data():null}catch(e){return null}},c1=await g('config','ctr'),c2=await g('cn',k);let n=Math.max((c1&&c1[k])||0,(c2&&c2.n)||0);
-const pw=Math.random().toString(36).slice(2,8)+'A1',app2=initializeApp(cfg,'r'+Date.now()),a2=getAuth(app2),db2=getFirestore(app2),bn=((RGB.find(x=>x.id==d.bid))||{}).name||'';
+const pw=d.pw,app2=initializeApp(cfg,'r'+Date.now()),a2=getAuth(app2),db2=getFirestore(app2),bn=((RGB.find(x=>x.id==d.bid))||{}).name||'';
 const base=st?{role:'student',name:d.name,nick:d.nick,gphone:d.gphone,gem:d.gem,bid:d.bid,school:d.school,grp:d.grp,phone:d.phone,addr:d.addr,email:d.email}:{role:'teacher',name:d.name,nick:d.nick,subject:d.subject,cls:d.cls,phone:d.phone,addr:d.addr,email:d.email,bids:[]};
 for(let i=0;i<40;i++){n++;const roll=pre+String(n).padStart(3,'0');
 if(await g('login',roll.toLowerCase()))continue;
 let c;try{c=await createUserWithEmailAndPassword(a2,em(roll),pw)}catch(e){if(e.code=='auth/email-already-in-use')continue;throw e}
 try{await setDoc(doc(db2,'users',c.user.uid),{...base,roll,active:true,mustChange:true})}catch(e){try{await c.user.delete()}catch(x){}throw e}
-try{await setDoc(doc(db2,'cn',k),{n})}catch(e){}
+try{await updateDoc(doc(db2,'users',c.user.uid),{mustChange:false})}catch(e){}try{await setDoc(doc(db2,'cn',k),{n})}catch(e){}
 try{await signOut(a2)}catch(e){}
 try{await addDoc(collection(db,'reg'),{role:d.role,name:d.name,phone:d.phone,email:d.email,roll,bn,subject:d.subject||'',st:'auto',t:Date.now()})}catch(e){}
-const err=await sendMail(d.email,d.name,roll,pw);
+const err=await sendMail(d.email,d.name,roll,'(the password you chose)').catch(()=>null);
 mailCfg().then(m=>{if(m.ae)mail2(m.ae,'Admin','New '+d.role+' registered: '+d.name,d.name+' registered as '+roll+(bn?' ('+bn+')':'')+'. Phone: '+d.phone+'. No approval is needed.')}).catch(()=>{});
 return{roll,err}}
 throw new Error('Could not create a roll number. Please try again.')}

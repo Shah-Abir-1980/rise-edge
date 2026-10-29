@@ -93,3 +93,9 @@ Upload ALL files of this folder to GitHub (Add file > Upload files, drag everyth
 - **Delete:** only the admin sees the Delete button (Homework, Suggestions, Exam solutions). Teachers and students cannot delete.
 - Publish the new `firestore.rules` (Firebase > Firestore > Rules > Publish) so that teachers are also blocked from deleting files on the server side.
 - The Suggestions / Exam solutions Upload box has no 700 KB limit any more either.
+
+## v12 - Facebook-style registration
+- On the registration form, students and teachers choose their own password (typed twice).
+- After "Confirm and register" they are logged in at once and see their roll ID. Next time they log in with roll ID + that password.
+- No temporary password, no password email, nothing for the admin to do. The admin can still delete any user.
+- No new firestore.rules needed. Just upload the new app.js.
