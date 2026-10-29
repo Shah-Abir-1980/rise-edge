@@ -17,7 +17,7 @@ Students and teachers: roll number (REAS-2026-001 / REAT-2026-001) and password.
 Admin: your name, or your email (Profile > Login with email), or `admin`.
 
 ## Self-registration (no approval) and emails (free, EmailJS)
-Students and teachers register themselves on the login page: fill the form, check it on the review screen (Edit if something is wrong), confirm. The account is created at once and the roll ID and password are emailed to them. Nobody has to approve.
+Students and teachers register themselves on the login page: fill the form, check it on the review screen (Edit if something is wrong), confirm. The account is created at once and they are logged in, but they see **only the dashboard** until the admin or a co-admin approves them (see v13).
 Set up EmailJS first, otherwise nobody receives a password:
 emailjs.com > connect your email > create a template using {{to_email}}, {{to_name}}, {{roll}}, {{password}}.
 Then Admin > Registrations > Email setup: paste Public key, Service ID, Template ID (and Template ID 2 + your email to get a notice for every new registration).
@@ -97,5 +97,18 @@ Upload ALL files of this folder to GitHub (Add file > Upload files, drag everyth
 ## v12 - Facebook-style registration
 - On the registration form, students and teachers choose their own password (typed twice).
 - After "Confirm and register" they are logged in at once and see their roll ID. Next time they log in with roll ID + that password.
-- No temporary password, no password email, nothing for the admin to do. The admin can still delete any user.
-- No new firestore.rules needed. Just upload the new app.js.
+- No temporary password and no password email.
+
+## v13 - admin approval, group box
+- **Approval:** a self-registered student or teacher can log in at once, but sees only the **dashboard** (a "Waiting for admin approval" box). Every other page (homework, fees, results, syllabus, profile, ID card...) is locked until the admin or a co-admin approves the account. The page checks by itself every 30 seconds and opens everything as soon as it is approved (the "Check again" button does it at once).
+- **Where to approve:** Admin / co-admin dashboard shows a card "accounts waiting for approval". Registrations tab > "Waiting for approval" > **Approve** or **Reject** (Reject deletes the account). The person gets a notification when approved.
+- Waiting accounts are not counted anywhere (not in attendance, exams, fees, ranks, student lists) until approved.
+- Students and teachers added by the admin inside the app, and all old accounts, need no approval.
+- **Registration form:** the Group box stays hidden until Class 9-12 is chosen.
+- **firestore.rules: publish them (Firebase > Firestore > Rules > Publish) together with the new app.js.** The rules now (1) let a new account be created only with `ap: false`, (2) never let a user change `ap` himself, and (3) stop accounts that are not approved from reading homework, fees, files, results, notifications, routine, syllabus and so on. Until the new rules are published, new registrations are refused.
+
+## v14 - Class 4-12, no batch on registration
+- Classes now go from **Class 4 to Class 12** (registration form and batch class).
+- The registration form has **no batch choice** any more. Students only choose their class, register and log in.
+- The admin or a co-admin puts the student in a batch: **Batches > tap a batch > Add student to this batch**. Until then the student shows under "No batch" (their chosen class is still shown in the Students tab).
+- **firestore.rules: publish again** (Firebase > Firestore > Rules > Publish). Without the new rules, new registrations are refused.
