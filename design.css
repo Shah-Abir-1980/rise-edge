@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 /* Rise Edge — academy workspace design system */
 :root{--bg:oklch(.975 .008 285);--card:oklch(1 0 0);--ink:oklch(.24 .03 280);--mut:oklch(.56 .025 280);--line:oklch(.93 .012 285);--pri:oklch(.55 .2 280);--pri2:oklch(.66 .17 295);--on:oklch(1 0 0);--acc:oklch(.78 .14 70);--bad:oklch(.62 .2 22);--ok:oklch(.62 .15 155);--warn:oklch(.68 .15 65);--nav:oklch(1 0 0);--nav-ink:var(--ink);--soft:oklch(.95 .03 285);--focus:color-mix(in oklab,var(--pri) 22%,transparent);--shadow:0 8px 28px -10px color-mix(in oklab,var(--pri) 22%,transparent);--grad:linear-gradient(135deg,var(--pri),var(--pri2));--r:16px;--sh:var(--shadow)}
 @media(prefers-color-scheme:dark){:root{--bg:oklch(.18 .02 280);--card:oklch(.23 .025 280);--ink:oklch(.95 .01 285);--mut:oklch(.72 .02 285);--line:oklch(.32 .025 280);--pri:oklch(.7 .16 285);--pri2:oklch(.62 .18 300);--on:oklch(.99 0 0);--nav:var(--card);--soft:oklch(.3 .05 285);--bad:oklch(.72 .17 22);--ok:oklch(.74 .14 155);--warn:oklch(.8 .13 70)}}
@@ -26,3 +27,42 @@ input[type=checkbox]{accent-color:var(--pri);border-radius:6px}
 .top .tt{font-weight:800}.bell i{border-radius:99px}
 ::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:var(--line);border-radius:99px}
 @media(min-width:900px){#a:has(#sd){padding:16px 40px 48px}#sd{margin:0;border-radius:0 28px 28px 0}}
+
+
+/* ===== Leaderboard-style theme: purple header + rounded notched sheet ===== */
+:root{--hd:#6c5ce7;--bg:#f8f9fe;--card:#fff;--ink:#2d3436;--mut:#7a8099;--line:#eceefb;--pri:#6c5ce7;--pri2:#5849be;--on:#fff;--acc:#ffab4c;--soft:#efedfd;--nav:#fff;--r:16px;--shadow:0 8px 24px rgba(108,92,231,.08);--sh:var(--shadow);--ff:'Poppins','Hind Siliguri',-apple-system,BlinkMacSystemFont,sans-serif}
+@media(prefers-color-scheme:dark){:root{--hd:#3f3590;--bg:#14121f;--card:#1d1a2e;--nav:var(--card);--ink:#ecebf7;--mut:#9b98b5;--line:#2e2a45;--pri:#8174f0;--pri2:#6c5ce7;--soft:#2a2545;--shadow:0 8px 24px rgba(0,0,0,.35)}}
+body,button,input,select,textarea,h2,h3,b,strong,.top .tt,.sc b,#sd .br b,.idc{font-family:var(--ff)}
+body{background:var(--bg)}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:4px}
+
+/* Header block (brand + top bar) */
+#a:has(#sd){--px:18px;padding-top:0;padding-inline:var(--px)}
+@media(min-width:900px){#a:has(#sd){--px:40px}}
+.bnd,.top{background:var(--hd);color:#fff;margin-inline:calc(var(--px,18px)*-1)}
+.bnd{padding:calc(16px + env(safe-area-inset-top,0px)) var(--px,18px) 6px!important}
+#a .bnd b{color:#fff}#a .bnd small{color:rgba(255,255,255,.75)}
+.top{position:relative;margin-top:0;margin-bottom:0;padding:8px var(--px,18px) 44px;border:0!important;gap:12px}
+.top::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:28px;background:var(--bg);border-radius:28px 28px 0 0}
+.top::before{content:"";position:absolute;left:50%;bottom:17px;width:36px;height:10px;margin-left:-18px;background:var(--hd);border-radius:0 0 10px 10px;z-index:1}
+.top .tt{color:#fff;font-size:18px;font-weight:600}
+.top .ham,.top .bell{background:rgba(255,255,255,.18);border:0;color:#fff}
+.top .bell i{background:var(--acc);color:#2d3436}
+.top .who,.top .who b{color:#fff}.top .who small{color:rgba(255,255,255,.75)}
+.top .gs input{background:rgba(255,255,255,.16);border:0;color:#fff}
+.top .gs input::placeholder{color:rgba(255,255,255,.75)}
+.top .gs input:focus{background:#fff;color:var(--ink);box-shadow:0 0 0 3px rgba(255,255,255,.35)}
+.top .gs input:focus::placeholder{color:var(--mut)}
+#gsr{color:var(--ink)}
+@media(min-width:900px){.who{border-left-color:rgba(255,255,255,.3)}}
+nav#sd+*{margin-top:4px}
+
+/* Sheet content */
+.wl{background:var(--card)!important;border-radius:16px!important;padding:16px!important;box-shadow:var(--shadow)!important}
+.wl h2,.wl b{color:var(--ink)!important}.wl p,.wl .mut,.wl .dt{color:var(--mut)!important;opacity:1}
+.stu{background:var(--card);border-radius:16px;box-shadow:var(--shadow);padding:12px 16px}
+
+/* Tab switcher */
+.bar{background:var(--soft);padding:4px;border-radius:16px;gap:4px;margin-bottom:16px}
+.bar button{flex:1 0 auto;background:transparent;border:0;color:var(--mut);border-radius:12px;min-height:40px;font-weight:500}
+.bar .on{background:var(--hd);color:#fff;font-weight:600}
